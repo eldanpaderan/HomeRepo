@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Dashboard</title>
+
+  <!-- ============================================================
+       FONTS — Syne (display) + DM Mono (clock/data)
+  ============================================================ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- ============================================================
+       TAILWIND CSS v4 (CDN — no build step required)
+  ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS & GLOBAL RESET
+    ============================================================ */
+    :root {
+      --bg-base:      #0b0f17;
+      --bg-card:      #111722;
+      --bg-card-alt:  #131a26;
+      --border:       rgba(255,255,255,0.06);
+      --border-glow:  rgba(20,184,166,0.25);
+      --teal:         #14b8a6;
+      --teal-dim:     rgba(20,184,166,0.12);
+      --teal-glow:    rgba(20,184,166,0.35);
+      --emerald:      #10b981;
+      --amber:        #f59e0b;
+      --rose:         #f43f5e;
+      --muted:        rgba(255,255,255,0.35);
+      --text:         rgba(255,255,255,0.88);
+      --font-display: 'Syne', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+      --radius:       14px;
+      --radius-sm:    8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      /* subtle noise grain overlay via SVG data URI */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* ============================================================
+       LAYOUT — responsive grid
+    ============================================================ */
+    #app {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.25rem;
+      display: grid;
+      gap: 1rem;
+      /* Mobile: single column */
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "header"
+        "tasks"
+        "calendar"
+        "budget";
+    }
+
+    /* Tablet (≥ 768px): 2 columns */
+    @media (min-width: 768px) {
+      #app {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "header   header"
+          "tasks    calendar"
+          "budget   budget";
+        gap: 1.25rem;
+      }
+    }
+
+    /* Desktop (≥ 1100px): 3 columns */
+    @media (min-width: 1100px) {
+      #app {
+        grid-template-columns: 1.15fr 1fr 1fr;
+        grid-template-areas:
+          "header  header  header"
+          "tasks   calendar budget";
+        gap: 1.5rem;
+        padding: 1.75rem;
+      }
+    }
+
+    /* ============================================================
+       CARD BASE — fixed structural height prevents layout shift
+    ============================================================ */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      /* Fixed height per section, override per card */
+      height: 460px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s ease;
+    }
+    .card:hover { border-color: var(--border-glow); }
+
+    /* Ambient glow accent — top-left corner per card */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -40px; left: -40px;
+      width: 140px; height: 140px;
+      background: radial-gradient(circle, var(--teal-glow) 0%, transparent 70%);
+      opacity: 0;
+      border-radius: 50%;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+    .card:hover::before { opacity: 1; }
+
+    .card-title {
+      font-size: 0.625rem;
+      font-family: var(--font-mono);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .card-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      /* hide scrollbar visually but keep functionality */
+      scrollbar-width: none;
+    }
+    .card-body::-webkit-scrollbar { display: none; }
+
+    /* ============================================================
+       HEADER CARD
+    ============================================================ */
+    #header-card {
+      grid-area: header;
+      height: auto; /* header is not fixed-height */
+      padding: 1.75rem 2rem;
+      flex-direction: row;
+      align-items: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .greeting-block { flex: 1; min-width: 200px; }
+
+    #greeting-emoji {
+      font-size: 2rem;
+      line-height: 1;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    #greeting-text {
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: #fff;
+    }
+
+    #greeting-sub {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* Clock block */
+    .clock-block {
+      font-family: var(--font-mono);
+      text-align: right;
+      min-width: 160px;
+    }
+
+    #clock-time {
+      font-size: clamp(2.2rem, 6vw, 3.6rem);
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      color: #fff;
+      line-height: 1;
+      /* teal accent on seconds */
+    }
+
+    #clock-time .seconds {
+      color: var(--teal);
+      font-weight: 400;
+    }
+
+    #clock-date {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+      letter-spacing: 0.06em;
+    }
+
+    #clock-period {
+      display: inline-block;
+      font-size: 0.625rem;
+      letter-spacing: 0.15em;
+      background: var(--teal-dim);
+      color: var(--teal);
+      border: 1px solid var(--teal-glow);
+      border-radius: 4px;
+      padding: 0.15rem 0.5rem;
+      margin-top: 0.4rem;
+    }
+
+    /* ============================================================
+       TASKS CARD
+    ============================================================ */
+    #tasks-card { grid-area: tasks; }
+
+    .task-progress-bar {
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .task-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--emerald));
+      border-radius: 2px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .task-counter {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-bottom: 0.9rem;
+    }
+    .task-counter span { color: var(--teal); font-weight: 500; }
+
+    /* Individual task item */
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.5rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .task-item:hover { background: rgba(255,255,255,0.03); }
+    .task-item:active { background: rgba(255,255,255,0.06); }
+
+    /* Custom checkbox */
+    .task-check {
+      width: 18px; height: 18px;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 5px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      transition: all 0.2s ease;
+      background: transparent;
+    }
+    .task-check svg { opacity: 0; transform: scale(0.6); transition: all 0.2s ease; }
+
+    .task-item.done .task-check {
+      background: var(--teal);
+      border-color: var(--teal);
+    }
+    .task-item.done .task-check svg { opacity: 1; transform: scale(1); }
+
+    .task-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: color 0.2s ease;
+      line-height: 1.3;
+    }
+    .task-item.done .task-label {
+      color: var(--muted);
+      text-decoration: line-through;
+      text-decoration-color: rgba(255,255,255,0.2);
+    }
+
+    .task-tag {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .tag-morning { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .tag-work    { background: rgba(20,184,166,0.10); color: var(--teal);  border: 1px solid rgba(20,184,166,0.2); }
+    .tag-health  { background: rgba(16,185,129,0.10); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+    .tag-faith   { background: rgba(244,63,94,0.10); color: var(--rose); border: 1px solid rgba(244,63,94,0.2); }
+
+    /* Reset button */
+    .btn-reset {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-reset:hover {
+      border-color: var(--rose);
+      color: var(--rose);
+      background: rgba(244,63,94,0.07);
+    }
+
+    /* ============================================================
+       CALENDAR CARD
+    ============================================================ */
+    #calendar-card { grid-area: calendar; }
+
+    .calendar-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 0.75rem;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .calendar-placeholder-icon {
+      font-size: 2rem;
+      opacity: 0.4;
+    }
+
+    .calendar-placeholder-text {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .calendar-placeholder-text code {
+      display: block;
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(255,255,255,0.04);
+      border-radius: 6px;
+      font-size: 0.6rem;
+      color: var(--teal);
+      word-break: break-all;
+      text-align: left;
+    }
+
+    /* The actual iframe — hidden until src is set */
+    #gcal-frame {
+      display: none;
+      width: 100%;
+      flex: 1;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      filter: invert(0.92) hue-rotate(170deg) saturate(0.7) brightness(0.95);
+    }
+
+    .btn-cal {
+      margin-top: 0.85rem;
+      padding: 0.45rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--teal-glow);
+      border-radius: var(--radius-sm);
+      background: var(--teal-dim);
+      color: var(--teal);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      align-self: flex-start;
+    }
+    .btn-cal:hover { background: rgba(20,184,166,0.2); }
+
+    /* ============================================================
+       BUDGET CARD
+    ============================================================ */
+    #budget-card {
+      grid-area: budget;
+      height: auto; /* let budget breathe */
+    }
+
+    .budget-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .budget-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .budget-item { display: flex; flex-direction: column; gap: 0.45rem; }
+
+    .budget-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .budget-amounts {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .budget-spent {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .budget-total {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--muted);
+    }
+
+    /* Custom progress bar */
+    .progress-track {
+      height: 5px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pf-teal    { background: linear-gradient(90deg, var(--teal), #22d3ee); }
+    .pf-emerald { background: linear-gradient(90deg, var(--emerald), #34d399); }
+    .pf-amber   { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+    .pf-rose    { background: linear-gradient(90deg, var(--rose), #fb7185); }
+
+    .budget-pct {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      text-align: right;
+    }
+
+    /* Monthly summary row */
+    .budget-summary {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .summary-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .summary-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    /* ============================================================
+       UTILITY ANIMATIONS
+    ============================================================ */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      animation: fadeSlideUp 0.5s ease both;
+    }
+
+    #header-card { animation-delay: 0.05s; }
+    #tasks-card  { animation-delay: 0.15s; }
+    #calendar-card { animation-delay: 0.22s; }
+    #budget-card   { animation-delay: 0.3s; }
+
+    /* Pulse dot for "live" clock */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    .live-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: var(--teal);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* Task add input */
+    .task-add-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .task-input {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.4rem 0.65rem;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .task-input::placeholder { color: var(--muted); }
+    .task-input:focus { border-color: var(--teal-glow); }
+
+    .task-add-btn {
+      padding: 0.4rem 0.75rem;
+      background: var(--teal-dim);
+      border: 1px solid var(--teal-glow);
+      border-radius: var(--radius-sm);
+      color: var(--teal);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      transition: background 0.2s;
+    }
+    .task-add-btn:hover { background: rgba(20,184,166,0.22); }
+
+    /* Calendar embed input row */
+    .cal-input-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .cal-url-input {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.4rem 0.65rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--teal);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .cal-url-input::placeholder { color: var(--muted); font-size: 0.62rem; }
+    .cal-url-input:focus { border-color: var(--teal-glow); }
+  </style>
+</head>
+
+<body>
+
+<!-- ================================================================
+     ROOT APP GRID
+================================================================ -->
+<div id="app">
+
+  <!-- ============================================================
+       HEADER — Greeting + Live Clock
+  ============================================================ -->
+  <div class="card" id="header-card">
+    <!-- Greeting Section -->
+    <div class="greeting-block">
+      <span id="greeting-emoji" aria-hidden="true">☀️</span>
+      <div id="greeting-text">Good morning.</div>
+      <div id="greeting-sub">Ready to make today count.</div>
+    </div>
+
+    <!-- Clock Section -->
+    <div class="clock-block">
+      <div id="clock-time">
+        <span id="ch">00</span>:<span id="cm">00</span><span class="seconds">:<span id="cs">00</span></span>
+      </div>
+      <div id="clock-period">AM</div>
+      <div id="clock-date">Loading…</div>
+    </div>
+  </div><!-- /header-card -->
+
+
+  <!-- ============================================================
+       TASKS — Morning Routine Checklist
+  ============================================================ -->
+  <div class="card" id="tasks-card">
+    <div class="card-title">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <rect x="0.5" y="0.5" width="9" height="9" rx="2" stroke="currentColor" stroke-opacity="0.7"/>
+        <path d="M2.5 5L4 6.5L7.5 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Morning Routine
+      <span class="live-dot" aria-hidden="true"></span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="task-progress-bar">
+      <div class="task-progress-fill" id="task-fill" style="width:0%"></div>
+    </div>
+    <div class="task-counter"><span id="done-count">0</span> of <span id="total-count">0</span> completed</div>
+
+    <!-- Scrollable task list -->
+    <div class="card-body" id="task-list"></div>
+
+    <!-- Add task row -->
+    <div class="task-add-row">
+      <input class="task-input" id="task-input" type="text" placeholder="Add a task…" maxlength="60" />
+      <button class="task-add-btn" id="task-add-btn" aria-label="Add task">+</button>
+    </div>
+
+    <!-- Reset button -->
+    <button class="btn-reset" id="task-reset-btn">↺ Reset All Checkboxes</button>
+  </div><!-- /tasks-card -->
+
+
+  <!-- ============================================================
+       CALENDAR — Google Calendar Embed
+  ============================================================ -->
+  <div class="card" id="calendar-card">
+    <div class="card-title">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <rect x="0.5" y="1.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-opacity="0.7"/>
+        <path d="M3 0.5V2.5M7 0.5V2.5M0.5 4H9.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      Calendar Feed
+    </div>
+
+    <!-- Placeholder shown until src is set -->
+    <div class="calendar-placeholder" id="cal-placeholder">
+      <div class="calendar-placeholder-icon">📅</div>
+      <div class="calendar-placeholder-text">
+        Paste your Google Calendar embed URL below.<br>
+        (Settings → Integrate calendar → Embed code → src="…")
+        <code id="cal-src-display">No URL set yet.</code>
+      </div>
+    </div>
+
+    <!-- iFrame — revealed after URL is saved -->
+    <iframe
+      id="gcal-frame"
+      title="Google Calendar"
+      sandbox="allow-scripts allow-same-origin allow-popups"
+    ></iframe>
+
+    <!-- URL input row -->
+    <div class="cal-input-row" style="margin-top:0.85rem;">
+      <input
+        class="cal-url-input"
+        id="cal-url-input"
+        type="url"
+        placeholder="https://calendar.google.com/calendar/embed?src=…&ctz=Asia/Manila&mode=AGENDA"
+      />
+      <button class="btn-cal" id="cal-save-btn">Embed</button>
+      <button class="btn-cal" id="cal-clear-btn" style="background:rgba(244,63,94,0.08);border-color:rgba(244,63,94,0.25);color:var(--rose);">Clear</button>
+    </div>
+  </div><!-- /calendar-card -->
+
+
+  <!-- ============================================================
+       BUDGET — Monthly Financial Snapshot
+  ============================================================ -->
+  <div class="card" id="budget-card">
+    <div class="card-title">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <path d="M1 7.5L3.5 5L5.5 6.5L9 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="9" cy="2.5" r="1" fill="currentColor" opacity="0.6"/>
+      </svg>
+      Budget Snapshot — <span id="budget-month" style="color:var(--teal)">May 2025</span>
+    </div>
+
+    <!-- Budget bars grid (populated by JS) -->
+    <div class="budget-grid" id="budget-grid"></div>
+
+    <!-- Summary totals -->
+    <div class="budget-summary" id="budget-summary"></div>
+  </div><!-- /budget-card -->
+
+</div><!-- /app -->
+
+
+<!-- ================================================================
+     JAVASCRIPT — All logic in one <script> block
+================================================================ -->
+<script>
+'use strict';
+
+/* ================================================================
+   1. CONSTANTS & CONFIG
+================================================================ */
+
+// Default tasks (stored in localStorage; users can add/remove)
+const DEFAULT_TASKS = [
+  { id: 't1', label: 'Morning prayer / devotion', tag: 'faith',   done: false },
+  { id: 't2', label: 'Make bed & tidy room',       tag: 'morning', done: false },
+  { id: 't3', label: 'Hydrate — 2 glasses water',  tag: 'health',  done: false },
+  { id: 't4', label: 'Check today\'s calendar',     tag: 'work',    done: false },
+  { id: 't5', label: 'Review top 3 priorities',    tag: 'work',    done: false },
+  { id: 't6', label: 'Morning workout / stretches', tag: 'health', done: false },
+  { id: 't7', label: 'Breakfast — no screens',     tag: 'health',  done: false },
+  { id: 't8', label: 'Open laptop & plan tasks',   tag: 'work',    done: false },
+];
+
+// Budget data (edit amounts here to customize; all in ₱ or your local currency)
+const BUDGET_DATA = [
+  { label: 'Groceries',  spent: 4200,  total: 6000,  colorClass: 'pf-teal' },
+  { label: 'Bills',      spent: 3800,  total: 5000,  colorClass: 'pf-rose' },
+  { label: 'Transport',  spent: 1100,  total: 2000,  colorClass: 'pf-amber' },
+  { label: 'Savings',    spent: 5000,  total: 8000,  colorClass: 'pf-emerald' },
+];
+
+const LS_TASKS_KEY  = 'hd_tasks_v1';
+const LS_CAL_KEY    = 'hd_cal_url_v1';
+
+/* ================================================================
+   2. LIVE CLOCK
+================================================================ */
+const elH = document.getElementById('ch');
+const elM = document.getElementById('cm');
+const elS = document.getElementById('cs');
+const elPeriod = document.getElementById('clock-period');
+const elDate   = document.getElementById('clock-date');
+
+function tickClock() {
+  const now  = new Date();
+  let hours  = now.getHours();
+  const mins = now.getMinutes();
+  const secs = now.getSeconds();
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const h12 = hours % 12 || 12;
+
+  elH.textContent = String(h12).padStart(2, '0');
+  elM.textContent = String(mins).padStart(2, '0');
+  elS.textContent = String(secs).padStart(2, '0');
+  elPeriod.textContent = period;
+
+  // Localized date — e.g. "Wednesday, May 27, 2026"
+  elDate.textContent = now.toLocaleDateString(navigator.language || 'en-PH', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  // Update greeting based on hour (24h)
+  updateGreeting(hours);
+}
+
+/* ================================================================
+   3. DYNAMIC GREETING
+================================================================ */
+const MOODS = [
+  // Night owl (0-4)
+  { start: 0,  emoji: '🌙', text: 'Still up?',      sub: 'Rest is productive too, friend.' },
+  // Early bird (5-7)
+  { start: 5,  emoji: '🌅', text: 'Rise & shine.',   sub: 'The quiet hours belong to you.' },
+  // Morning coffee (8-10)
+  { start: 8,  emoji: '☕', text: 'Good morning.',   sub: 'Ready to make today count.' },
+  // Midday grind (11-13)
+  { start: 11, emoji: '⚡', text: 'In the zone.',    sub: 'Focus. Breathe. Execute.' },
+  // Afternoon (14-17)
+  { start: 14, emoji: '🌤', text: 'Afternoon.',      sub: 'Halfway there — keep the momentum.' },
+  // Golden hour (18-20)
+  { start: 18, emoji: '🌇', text: 'Wind down.',      sub: 'Reflect on what you accomplished.' },
+  // Evening (21-23)
+  { start: 21, emoji: '🌃', text: 'Good evening.',   sub: 'Rest well. Tomorrow starts tonight.' },
+];
+
+const elEmoji = document.getElementById('greeting-emoji');
+const elGreet = document.getElementById('greeting-text');
+const elSub   = document.getElementById('greeting-sub');
+let lastMoodStart = -1;
+
+function updateGreeting(hour) {
+  let mood = MOODS[0];
+  for (const m of MOODS) { if (hour >= m.start) mood = m; }
+  if (mood.start === lastMoodStart) return; // no change
+  lastMoodStart = mood.start;
+  elEmoji.textContent = mood.emoji;
+  elGreet.textContent = mood.text;
+  elSub.textContent   = mood.sub;
+}
+
+/* Start clock — immediate + every second */
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ================================================================
+   4. TASKS — localStorage-persisted checklist
+================================================================ */
+let tasks = [];
+
+function loadTasks() {
+  try {
+    const saved = localStorage.getItem(LS_TASKS_KEY);
+    tasks = saved ? JSON.parse(saved) : [...DEFAULT_TASKS.map(t => ({ ...t }))];
+  } catch {
+    tasks = [...DEFAULT_TASKS.map(t => ({ ...t }))];
+  }
+}
+
+function saveTasks() {
+  localStorage.setItem(LS_TASKS_KEY, JSON.stringify(tasks));
+}
+
+function renderTasks() {
+  const list = document.getElementById('task-list');
+  list.innerHTML = '';
+
+  tasks.forEach((task, idx) => {
+    const item = document.createElement('div');
+    item.className = 'task-item' + (task.done ? ' done' : '');
+    item.dataset.idx = idx;
+    item.setAttribute('role', 'checkbox');
+    item.setAttribute('aria-checked', task.done);
+    item.tabIndex = 0;
+
+    item.innerHTML = `
+      <div class="task-check">
+        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+          <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="task-label">${escapeHTML(task.label)}</span>
+      <span class="task-tag tag-${task.tag}">${task.tag}</span>
+    `;
+
+    // Toggle on click or Space/Enter
+    const toggle = () => toggleTask(idx);
+    item.addEventListener('click', toggle);
+    item.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+
+    list.appendChild(item);
+  });
+
+  updateTaskProgress();
+}
+
+function toggleTask(idx) {
+  tasks[idx].done = !tasks[idx].done;
+  saveTasks();
+  renderTasks();
+}
+
+function updateTaskProgress() {
+  const done  = tasks.filter(t => t.done).length;
+  const total = tasks.length;
+  const pct   = total ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('task-fill').style.width   = pct + '%';
+  document.getElementById('done-count').textContent  = done;
+  document.getElementById('total-count').textContent = total;
+}
+
+/* Add task */
+function addTask() {
+  const input = document.getElementById('task-input');
+  const label = input.value.trim();
+  if (!label) return;
+  tasks.push({ id: 't' + Date.now(), label, tag: 'work', done: false });
+  saveTasks();
+  renderTasks();
+  input.value = '';
+  input.focus();
+}
+
+document.getElementById('task-add-btn').addEventListener('click', addTask);
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+/* Reset all checkboxes */
+document.getElementById('task-reset-btn').addEventListener('click', () => {
+  tasks.forEach(t => t.done = false);
+  saveTasks();
+  renderTasks();
+});
+
+/* ================================================================
+   5. CALENDAR — Google Calendar iFrame embed
+================================================================ */
+const calFrame    = document.getElementById('gcal-frame');
+const calHolder   = document.getElementById('cal-placeholder');
+const calSrcDisp  = document.getElementById('cal-src-display');
+const calInput    = document.getElementById('cal-url-input');
+
+function applyCalURL(url) {
+  if (url && url.startsWith('https://calendar.google.com/')) {
+    calFrame.src = url;
+    calFrame.style.display = 'block';
+    calHolder.style.display = 'none';
+    calSrcDisp.textContent  = url;
+  } else {
+    calFrame.style.display = 'none';
+    calHolder.style.display = 'flex';
+  }
+}
+
+// Restore from localStorage on load
+const savedCalURL = localStorage.getItem(LS_CAL_KEY) || '';
+if (savedCalURL) calInput.value = savedCalURL;
+applyCalURL(savedCalURL);
+
+document.getElementById('cal-save-btn').addEventListener('click', () => {
+  const url = calInput.value.trim();
+  localStorage.setItem(LS_CAL_KEY, url);
+  applyCalURL(url);
+});
+
+document.getElementById('cal-clear-btn').addEventListener('click', () => {
+  calInput.value = '';
+  localStorage.removeItem(LS_CAL_KEY);
+  applyCalURL('');
+});
+
+/* ================================================================
+   6. BUDGET — Static progress bars
+================================================================ */
+function renderBudget() {
+  const grid    = document.getElementById('budget-grid');
+  const summary = document.getElementById('budget-summary');
+  const monthEl = document.getElementById('budget-month');
+
+  // Show current month
+  monthEl.textContent = new Date().toLocaleDateString(navigator.language || 'en-PH', {
+    month: 'long', year: 'numeric'
+  });
+
+  grid.innerHTML = '';
+  let totalSpent = 0, totalBudget = 0;
+
+  BUDGET_DATA.forEach(item => {
+    totalSpent  += item.spent;
+    totalBudget += item.total;
+    const pct    = Math.min(Math.round((item.spent / item.total) * 100), 100);
+
+    // Pick text color for percentage
+    let pctColor = 'var(--teal)';
+    if (pct >= 90) pctColor = 'var(--rose)';
+    else if (pct >= 70) pctColor = 'var(--amber)';
+
+    const col = document.createElement('div');
+    col.className = 'budget-item';
+    col.innerHTML = `
+      <div class="budget-label">${escapeHTML(item.label)}</div>
+      <div class="budget-amounts">
+        <span class="budget-spent">₱${item.spent.toLocaleString()}</span>
+        <span class="budget-total">/ ₱${item.total.toLocaleString()}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill ${item.colorClass}" style="width:0%" data-target="${pct}"></div>
+      </div>
+      <div class="budget-pct" style="color:${pctColor}">${pct}%</div>
+    `;
+    grid.appendChild(col);
+  });
+
+  // Animate progress bars after paint
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.progress-fill[data-target]').forEach(bar => {
+        bar.style.width = bar.dataset.target + '%';
+      });
+    });
+  });
+
+  // Summary stats
+  const remaining = totalBudget - totalSpent;
+  const overallPct = Math.round((totalSpent / totalBudget) * 100);
+  summary.innerHTML = `
+    <div class="summary-stat">
+      <span class="summary-label">Total Spent</span>
+      <span class="summary-value" style="color:var(--rose)">₱${totalSpent.toLocaleString()}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-label">Total Budget</span>
+      <span class="summary-value" style="color:#fff">₱${totalBudget.toLocaleString()}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-label">Remaining</span>
+      <span class="summary-value" style="color:var(--emerald)">₱${remaining.toLocaleString()}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-label">Overall</span>
+      <span class="summary-value" style="color:var(--amber)">${overallPct}%</span>
+    </div>
+  `;
+}
+
+/* ================================================================
+   7. UTILITIES
+================================================================ */
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ================================================================
+   8. INIT
+================================================================ */
+loadTasks();
+renderTasks();
+renderBudget();
+</script>
+</body>
+</html>
