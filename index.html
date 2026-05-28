@@ -686,7 +686,7 @@
       <div class="calendar-placeholder-text">
         Paste your Google Calendar embed URL below.<br>
         (Settings → Integrate calendar → Embed code → src="…")
-        <code id="cal-src-display"></code>
+        <code id="cal-src-display">No URL set yet.</code>
       </div>
     </div>
 
@@ -703,7 +703,7 @@
         class="cal-url-input"
         id="cal-url-input"
         type="url"
-        placeholder="https://calendar.google.com/calendar/embed?src=eldanpaderan12%40gmail.com&ctz=Asia%2FManila&view=AGENDA"
+        placeholder="https://calendar.google.com/calendar/embed?src=…&ctz=Asia/Manila&mode=AGENDA"
       />
       <button class="btn-cal" id="cal-save-btn">Embed</button>
       <button class="btn-cal" id="cal-clear-btn" style="background:rgba(244,63,94,0.08);border-color:rgba(244,63,94,0.25);color:var(--rose);">Clear</button>
@@ -947,8 +947,11 @@ function applyCalURL(url) {
   }
 }
 
-// Restore from localStorage on load
-const savedCalURL = localStorage.getItem(LS_CAL_KEY) || '';
+// Hardcoded default — loads automatically even on first visit
+const DEFAULT_CAL_URL = 'https://calendar.google.com/calendar/embed?src=eldanpaderan12%40gmail.com&ctz=Asia%2FManila&mode=AGENDA';
+
+// Restore from localStorage, fall back to hardcoded default
+const savedCalURL = localStorage.getItem(LS_CAL_KEY) || DEFAULT_CAL_URL;
 if (savedCalURL) calInput.value = savedCalURL;
 applyCalURL(savedCalURL);
 
