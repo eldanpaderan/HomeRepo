@@ -67,6 +67,7 @@
       grid-template-columns: 1fr;
       grid-template-areas:
         "header"
+        "pomodoro"
         "tasks"
         "calendar"
         "budget";
@@ -78,8 +79,8 @@
         grid-template-columns: 1fr 1fr;
         grid-template-areas:
           "header   header"
-          "tasks    calendar"
-          "budget   budget";
+          "pomodoro tasks"
+          "calendar budget";
         gap: 1.25rem;
       }
     }
@@ -87,10 +88,10 @@
     /* Desktop (≥ 1100px): 3 columns */
     @media (min-width: 1100px) {
       #app {
-        grid-template-columns: 1.15fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1.15fr 1fr;
         grid-template-areas:
-          "header  header  header"
-          "tasks   calendar budget";
+          "header   header    header   header"
+          "pomodoro tasks     calendar budget";
         gap: 1.5rem;
         padding: 1.75rem;
       }
@@ -526,9 +527,10 @@
     }
 
     #header-card { animation-delay: 0.05s; }
-    #tasks-card  { animation-delay: 0.15s; }
-    #calendar-card { animation-delay: 0.22s; }
-    #budget-card   { animation-delay: 0.3s; }
+    #pomodoro-card { animation-delay: 0.12s; }
+    #tasks-card  { animation-delay: 0.19s; }
+    #calendar-card { animation-delay: 0.26s; }
+    #budget-card   { animation-delay: 0.33s; }
 
     /* Pulse dot for "live" clock */
     @keyframes pulse {
@@ -603,6 +605,185 @@
     }
     .cal-url-input::placeholder { color: var(--muted); font-size: 0.62rem; }
     .cal-url-input:focus { border-color: var(--teal-glow); }
+    /* ============================================================
+       POMODORO CARD
+    ============================================================ */
+    #pomodoro-card { grid-area: pomodoro; }
+
+    /* SVG ring timer */
+    .pomo-ring-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin: 0.5rem auto 0.85rem;
+      width: 154px;
+      height: 154px;
+      flex-shrink: 0;
+    }
+
+    .pomo-svg { transform: rotate(-90deg); }
+
+    .pomo-track {
+      fill: none;
+      stroke: rgba(255,255,255,0.06);
+      stroke-width: 6;
+    }
+
+    .pomo-fill {
+      fill: none;
+      stroke: var(--teal);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.4s ease;
+    }
+
+    /* Ring colour changes per mode */
+    .pomo-fill.break  { stroke: var(--emerald); }
+    .pomo-fill.long   { stroke: var(--amber); }
+
+    /* Centre label inside ring */
+    .pomo-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+    }
+
+    .pomo-time-display {
+      font-family: var(--font-mono);
+      font-size: 1.85rem;
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .pomo-mode-badge {
+      font-family: var(--font-mono);
+      font-size: 0.52rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      background: var(--teal-dim);
+      border: 1px solid var(--teal-glow);
+      border-radius: 4px;
+      padding: 0.12rem 0.45rem;
+    }
+    .pomo-mode-badge.break { color: var(--emerald); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.25); }
+    .pomo-mode-badge.long  { color: var(--amber);   background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25); }
+
+    /* Session dots */
+    .pomo-sessions {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+      margin-bottom: 0.85rem;
+    }
+
+    .pomo-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: all 0.3s ease;
+    }
+    .pomo-dot.done { background: var(--teal); border-color: var(--teal); }
+    .pomo-dot.active { background: transparent; border-color: var(--teal); box-shadow: 0 0 6px var(--teal-glow); }
+
+    /* Controls */
+    .pomo-controls {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .pomo-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    #pomo-start-btn {
+      background: var(--teal-dim);
+      border-color: var(--teal-glow);
+      color: var(--teal);
+      flex: 1;
+    }
+    #pomo-start-btn:hover { background: rgba(20,184,166,0.22); }
+    #pomo-start-btn.running {
+      background: rgba(244,63,94,0.1);
+      border-color: rgba(244,63,94,0.25);
+      color: var(--rose);
+    }
+    #pomo-start-btn.running:hover { background: rgba(244,63,94,0.18); }
+
+    #pomo-skip-btn {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border);
+      color: var(--muted);
+    }
+    #pomo-skip-btn:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+    #pomo-reset-btn {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border);
+      color: var(--muted);
+    }
+    #pomo-reset-btn:hover { border-color: rgba(244,63,94,0.3); color: var(--rose); }
+
+    /* Mode selector tabs */
+    .pomo-tabs {
+      display: flex;
+      gap: 0.3rem;
+      margin-bottom: 0.85rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.25rem;
+    }
+
+    .pomo-tab {
+      flex: 1;
+      text-align: center;
+      padding: 0.3rem 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .pomo-tab:hover { color: var(--text); }
+    .pomo-tab.active {
+      background: var(--teal-dim);
+      color: var(--teal);
+      border: 1px solid var(--teal-glow);
+    }
+
+    /* Notification pulse on ring when time's up */
+    @keyframes ringPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.97); }
+    }
+    .pomo-ring-wrap.done-pulse { animation: ringPulse 0.8s ease 4; }
+
   </style>
 </head>
 
@@ -633,6 +814,74 @@
       <div id="clock-date">Loading…</div>
     </div>
   </div><!-- /header-card -->
+
+
+  <!-- ============================================================
+       POMODORO — Focus Timer
+  ============================================================ -->
+  <div class="card" id="pomodoro-card">
+    <div class="card-title">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <circle cx="5" cy="5" r="4" stroke="currentColor" stroke-opacity="0.7" stroke-width="1.1"/>
+        <path d="M5 2.5V5.5L7 6.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Pomodoro Timer
+    </div>
+
+    <!-- Mode tabs: Focus / Short Break / Long Break -->
+    <div class="pomo-tabs" id="pomo-tabs">
+      <div class="pomo-tab active" data-mode="focus"  data-mins="25">Focus</div>
+      <div class="pomo-tab"        data-mode="break"  data-mins="5">Short Break</div>
+      <div class="pomo-tab"        data-mode="long"   data-mins="15">Long Break</div>
+    </div>
+
+    <!-- SVG Ring -->
+    <div class="pomo-ring-wrap" id="pomo-ring-wrap">
+      <svg class="pomo-svg" width="154" height="154" viewBox="0 0 154 154">
+        <circle class="pomo-track" cx="77" cy="77" r="68"/>
+        <circle class="pomo-fill"  cx="77" cy="77" r="68" id="pomo-fill-ring"
+          stroke-dasharray="427.256"
+          stroke-dashoffset="0"
+        />
+      </svg>
+      <div class="pomo-center">
+        <span class="pomo-time-display" id="pomo-display">25:00</span>
+        <span class="pomo-mode-badge"   id="pomo-badge">Focus</span>
+      </div>
+    </div>
+
+    <!-- Session progress dots (4 pomodoros = 1 cycle) -->
+    <div class="pomo-sessions" id="pomo-sessions">
+      <div class="pomo-dot active" data-s="0"></div>
+      <div class="pomo-dot"        data-s="1"></div>
+      <div class="pomo-dot"        data-s="2"></div>
+      <div class="pomo-dot"        data-s="3"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="pomo-controls">
+      <button class="pomo-btn" id="pomo-start-btn">
+        <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor">
+          <path d="M1 1L8 5L1 9V1Z"/>
+        </svg>
+        Start
+      </button>
+      <button class="pomo-btn" id="pomo-skip-btn" title="Skip to next session">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M1 2L6 5L1 8V2Z" fill="currentColor"/>
+          <rect x="7" y="2" width="2" height="6" rx="1" fill="currentColor"/>
+        </svg>
+        Skip
+      </button>
+      <button class="pomo-btn" id="pomo-reset-btn" title="Reset timer">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 5a3.5 3.5 0 1 0 .7-2.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M1.5 2v1.5H3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Reset
+      </button>
+    </div>
+  </div><!-- /pomodoro-card -->
 
 
   <!-- ============================================================
@@ -1055,9 +1304,190 @@ function escapeHTML(str) {
 /* ================================================================
    8. INIT
 ================================================================ */
+/* ================================================================
+   8. INIT
+================================================================ */
 loadTasks();
 renderTasks();
 renderBudget();
+
+/* ================================================================
+   9. POMODORO TIMER
+================================================================ */
+(function () {
+  /* -- Config -- */
+  const MODES = {
+    focus: { label: 'Focus',       mins: 25, badgeClass: '' },
+    break: { label: 'Short Break', mins: 5,  badgeClass: 'break' },
+    long:  { label: 'Long Break',  mins: 15, badgeClass: 'long'  },
+  };
+
+  const CIRCUMFERENCE = 2 * Math.PI * 68; // r=68 → 427.256
+
+  /* -- State -- */
+  let currentMode    = 'focus';
+  let totalSeconds   = MODES.focus.mins * 60;
+  let remainSeconds  = totalSeconds;
+  let running        = false;
+  let interval       = null;
+  let sessionsDone   = 0;       // completed focus sessions (0-3)
+  const MAX_SESSIONS = 4;
+
+  /* -- DOM refs -- */
+  const display    = document.getElementById('pomo-display');
+  const badge      = document.getElementById('pomo-badge');
+  const ring       = document.getElementById('pomo-fill-ring');
+  const ringWrap   = document.getElementById('pomo-ring-wrap');
+  const startBtn   = document.getElementById('pomo-start-btn');
+  const skipBtn    = document.getElementById('pomo-skip-btn');
+  const resetBtn   = document.getElementById('pomo-reset-btn');
+  const dotsEl     = document.getElementById('pomo-sessions');
+  const tabs       = document.querySelectorAll('.pomo-tab');
+
+  /* -- Helpers -- */
+  function fmt(secs) {
+    const m = String(Math.floor(secs / 60)).padStart(2, '0');
+    const s = String(secs % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function setRingProgress(remaining, total) {
+    const pct    = remaining / total;
+    const offset = CIRCUMFERENCE * (1 - pct);
+    ring.style.strokeDashoffset = offset;
+    ring.style.strokeDasharray  = CIRCUMFERENCE;
+  }
+
+  function renderDots() {
+    const dots = dotsEl.querySelectorAll('.pomo-dot');
+    dots.forEach((dot, i) => {
+      dot.classList.remove('done', 'active');
+      if (i < sessionsDone)                        dot.classList.add('done');
+      else if (i === sessionsDone && currentMode === 'focus') dot.classList.add('active');
+    });
+  }
+
+  function applyMode(mode) {
+    currentMode   = mode;
+    totalSeconds  = MODES[mode].mins * 60;
+    remainSeconds = totalSeconds;
+
+    // Badge
+    badge.textContent = MODES[mode].label;
+    badge.className   = 'pomo-mode-badge ' + MODES[mode].badgeClass;
+
+    // Ring colour
+    ring.className = 'pomo-fill ' + MODES[mode].badgeClass;
+
+    // Reset ring & display
+    setRingProgress(totalSeconds, totalSeconds);
+    display.textContent = fmt(remainSeconds);
+
+    // Tabs highlight
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+
+    // Update page title
+    document.title = `${fmt(remainSeconds)} — ${MODES[mode].label} | Dashboard`;
+
+    renderDots();
+  }
+
+  function stop() {
+    clearInterval(interval);
+    interval = null;
+    running  = false;
+    startBtn.classList.remove('running');
+    startBtn.innerHTML = `
+      <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor"><path d="M1 1L8 5L1 9V1Z"/></svg>
+      Start`;
+    document.title = 'Home Dashboard';
+  }
+
+  function onTimerEnd() {
+    stop();
+
+    // Pulse the ring
+    ringWrap.classList.add('done-pulse');
+    ringWrap.addEventListener('animationend', () => ringWrap.classList.remove('done-pulse'), { once: true });
+
+    // Browser notification (if permission granted)
+    if (Notification.permission === 'granted') {
+      new Notification('Pomodoro', {
+        body: currentMode === 'focus'
+          ? '🍅 Focus session done! Take a break.'
+          : '⚡ Break over. Back to focus!',
+        icon: 'https://em-content.zobj.net/source/google/387/tomato_1f345.png',
+        silent: false,
+      });
+    }
+
+    // Auto-advance mode
+    if (currentMode === 'focus') {
+      sessionsDone = Math.min(sessionsDone + 1, MAX_SESSIONS);
+      if (sessionsDone >= MAX_SESSIONS) {
+        sessionsDone = 0;
+        applyMode('long');
+      } else {
+        applyMode('break');
+      }
+    } else {
+      applyMode('focus');
+    }
+  }
+
+  function tick() {
+    if (remainSeconds <= 0) { onTimerEnd(); return; }
+    remainSeconds--;
+    display.textContent = fmt(remainSeconds);
+    setRingProgress(remainSeconds, totalSeconds);
+    document.title = `${fmt(remainSeconds)} — ${MODES[currentMode].label} | Dashboard`;
+  }
+
+  /* -- Controls -- */
+  startBtn.addEventListener('click', () => {
+    if (running) {
+      stop();
+    } else {
+      // Request notification permission on first start
+      if (Notification.permission === 'default') Notification.requestPermission();
+      running = true;
+      startBtn.classList.add('running');
+      startBtn.innerHTML = `
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+          <rect x="1" y="1" width="3" height="8" rx="1"/><rect x="6" y="1" width="3" height="8" rx="1"/>
+        </svg>
+        Pause`;
+      interval = setInterval(tick, 1000);
+    }
+  });
+
+  skipBtn.addEventListener('click', () => {
+    stop();
+    if (currentMode === 'focus') {
+      sessionsDone = Math.min(sessionsDone + 1, MAX_SESSIONS);
+      if (sessionsDone >= MAX_SESSIONS) { sessionsDone = 0; applyMode('long'); }
+      else applyMode('break');
+    } else {
+      applyMode('focus');
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    stop();
+    applyMode(currentMode);
+  });
+
+  // Tab clicks — manual mode switch
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      stop();
+      applyMode(tab.dataset.mode);
+    });
+  });
+
+  /* -- Init -- */
+  applyMode('focus');
+})();
 </script>
 </body>
 </html>
