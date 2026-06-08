@@ -322,6 +322,89 @@
     .tag-health  { background: rgba(16,185,129,0.10); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
     .tag-faith   { background: rgba(244,63,94,0.10); color: var(--rose); border: 1px solid rgba(244,63,94,0.2); }
 
+    /* Task action buttons — edit & delete, revealed on hover/focus */
+    .task-actions {
+      display: flex;
+      gap: 0.25rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .task-item:hover .task-actions,
+    .task-item:focus-within .task-actions { opacity: 1; }
+
+    .task-act-btn {
+      width: 24px; height: 24px;
+      display: grid; place-items: center;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .task-act-btn:hover { border-color: var(--border); }
+    .task-act-btn.edit:hover  { background: rgba(20,184,166,0.12); border-color: var(--teal-glow); color: var(--teal); }
+    .task-act-btn.delete:hover { background: rgba(244,63,94,0.12); border-color: rgba(244,63,94,0.3); color: var(--rose); }
+
+    /* Inline edit input row replacing the label */
+    .task-edit-row {
+      display: flex;
+      gap: 0.4rem;
+      flex: 1;
+      align-items: center;
+    }
+    .task-edit-input {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--teal-glow);
+      border-radius: 5px;
+      padding: 0.25rem 0.5rem;
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      color: var(--text);
+      outline: none;
+    }
+    .task-edit-save {
+      padding: 0.25rem 0.55rem;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      background: var(--teal-dim);
+      border: 1px solid var(--teal-glow);
+      border-radius: 5px;
+      color: var(--teal);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .task-edit-cancel {
+      padding: 0.25rem 0.55rem;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* Tag selector inside edit row */
+    .task-tag-select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.25rem 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--muted);
+      outline: none;
+      cursor: pointer;
+    }
+
     /* Reset button */
     .btn-reset {
       margin-top: 1rem;
@@ -513,6 +596,158 @@
       font-weight: 800;
       letter-spacing: -0.03em;
     }
+
+    /* ============================================================
+       BUDGET — Edit / Add / Delete UI
+    ============================================================ */
+
+    /* Color dot picker inside edit row */
+    .budget-color-pick {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .color-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .color-dot:hover    { transform: scale(1.2); }
+    .color-dot.selected { border-color: #fff; transform: scale(1.15); }
+    .color-dot.pf-teal    { background: #14b8a6; }
+    .color-dot.pf-emerald { background: #10b981; }
+    .color-dot.pf-amber   { background: #f59e0b; }
+    .color-dot.pf-rose    { background: #f43f5e; }
+    .color-dot.pf-blue    { background: #3b82f6; }
+    .color-dot.pf-purple  { background: #a855f7; }
+
+    /* Budget item hover — reveal action buttons */
+    .budget-item { position: relative; }
+
+    .budget-item-actions {
+      display: flex;
+      gap: 0.2rem;
+      position: absolute;
+      top: 0; right: 0;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .budget-item:hover .budget-item-actions { opacity: 1; }
+
+    .budget-act-btn {
+      width: 20px; height: 20px;
+      display: grid; place-items: center;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .budget-act-btn.edit:hover   { background: rgba(20,184,166,0.14); border-color: var(--teal-glow); color: var(--teal); }
+    .budget-act-btn.delete:hover { background: rgba(244,63,94,0.12);  border-color: rgba(244,63,94,0.3); color: var(--rose); }
+
+    /* Inline budget edit form */
+    .budget-edit-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: 0.6rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--teal-glow);
+      border-radius: var(--radius-sm);
+    }
+
+    .budget-edit-row {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .budget-edit-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      width: 42px;
+      flex-shrink: 0;
+    }
+
+    .budget-edit-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.28rem 0.5rem;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      min-width: 0;
+    }
+    .budget-edit-input:focus { border-color: var(--teal-glow); }
+
+    .budget-edit-actions {
+      display: flex;
+      gap: 0.35rem;
+      justify-content: flex-end;
+      margin-top: 0.15rem;
+    }
+
+    .budget-save-btn {
+      padding: 0.28rem 0.65rem;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      background: var(--teal-dim);
+      border: 1px solid var(--teal-glow);
+      border-radius: 5px;
+      color: var(--teal);
+      cursor: pointer;
+    }
+    .budget-cancel-btn {
+      padding: 0.28rem 0.65rem;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    /* Add budget item button */
+    .budget-add-row {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-budget-add {
+      width: 100%;
+      padding: 0.42rem;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px dashed rgba(20,184,166,0.25);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--teal);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      opacity: 0.7;
+    }
+    .btn-budget-add:hover { opacity: 1; background: var(--teal-dim); border-style: solid; }
+
+    /* pf-blue and pf-purple gradient fills */
+    .pf-blue   { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .pf-purple { background: linear-gradient(90deg, #a855f7, #c084fc); }
 
     /* ============================================================
        UTILITY ANIMATIONS
@@ -975,6 +1210,12 @@
     <!-- Budget bars grid (populated by JS) -->
     <div class="budget-grid" id="budget-grid"></div>
 
+    <!-- Add new budget item -->
+    <div class="budget-add-row" id="budget-add-row">
+      <button class="btn-budget-add" id="budget-add-btn">+ Add Budget Item</button>
+      <div id="budget-add-form" style="display:none; margin-top:0.6rem;"></div>
+    </div>
+
     <!-- Summary totals -->
     <div class="budget-summary" id="budget-summary"></div>
   </div><!-- /budget-card -->
@@ -1111,24 +1352,118 @@ function renderTasks() {
     const item = document.createElement('div');
     item.className = 'task-item' + (task.done ? ' done' : '');
     item.dataset.idx = idx;
-    item.setAttribute('role', 'checkbox');
-    item.setAttribute('aria-checked', task.done);
-    item.tabIndex = 0;
 
-    item.innerHTML = `
-      <div class="task-check">
-        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-          <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <span class="task-label">${escapeHTML(task.label)}</span>
-      <span class="task-tag tag-${task.tag}">${task.tag}</span>
-    `;
+    if (task._editing) {
+      /* ── EDIT MODE ── */
+      item.setAttribute('role', 'row');
+      item.innerHTML = `
+        <div class="task-check" style="opacity:0.3;pointer-events:none;">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="task-edit-row">
+          <input class="task-edit-input" type="text" value="${escapeHTML(task.label)}" maxlength="80" />
+          <select class="task-tag-select">
+            <option value="faith"   ${task.tag==='faith'   ?'selected':''}>faith</option>
+            <option value="morning" ${task.tag==='morning' ?'selected':''}>morning</option>
+            <option value="health"  ${task.tag==='health'  ?'selected':''}>health</option>
+            <option value="work"    ${task.tag==='work'    ?'selected':''}>work</option>
+          </select>
+          <button class="task-edit-save">Save</button>
+          <button class="task-edit-cancel">✕</button>
+        </div>
+      `;
 
-    // Toggle on click or Space/Enter
-    const toggle = () => toggleTask(idx);
-    item.addEventListener('click', toggle);
-    item.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+      const inp    = item.querySelector('.task-edit-input');
+      const sel    = item.querySelector('.task-tag-select');
+      const saveB  = item.querySelector('.task-edit-save');
+      const cancelB= item.querySelector('.task-edit-cancel');
+
+      const doSave = () => {
+        const val = inp.value.trim();
+        if (!val) return;
+        tasks[idx].label    = val;
+        tasks[idx].tag      = sel.value;
+        tasks[idx]._editing = false;
+        saveTasks(); renderTasks();
+      };
+      const doCancel = () => {
+        tasks[idx]._editing = false;
+        renderTasks();
+      };
+
+      saveB.addEventListener('click',  e => { e.stopPropagation(); doSave(); });
+      cancelB.addEventListener('click',e => { e.stopPropagation(); doCancel(); });
+      inp.addEventListener('keydown',  e => {
+        if (e.key === 'Enter')  { e.preventDefault(); doSave(); }
+        if (e.key === 'Escape') { e.preventDefault(); doCancel(); }
+      });
+      /* Stop row-click from toggling checkbox while editing */
+      item.addEventListener('click', e => e.stopPropagation());
+
+      /* Auto-focus the input */
+      requestAnimationFrame(() => { inp.focus(); inp.select(); });
+
+    } else {
+      /* ── NORMAL MODE ── */
+      item.setAttribute('role', 'checkbox');
+      item.setAttribute('aria-checked', task.done);
+      item.tabIndex = 0;
+
+      item.innerHTML = `
+        <div class="task-check">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="task-label">${escapeHTML(task.label)}</span>
+        <span class="task-tag tag-${task.tag}">${task.tag}</span>
+        <div class="task-actions">
+          <button class="task-act-btn edit" title="Edit task" tabindex="0">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M7.5 1.5l2 2L3 10H1V8L7.5 1.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="task-act-btn delete" title="Delete task" tabindex="0">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      const editBtn   = item.querySelector('.task-act-btn.edit');
+      const deleteBtn = item.querySelector('.task-act-btn.delete');
+
+      /* Checkbox toggle — only fires if not clicking action buttons */
+      const toggle = (e) => {
+        if (editBtn.contains(e.target) || deleteBtn.contains(e.target)) return;
+        toggleTask(idx);
+      };
+      item.addEventListener('click', toggle);
+      item.addEventListener('keydown', e => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleTask(idx); }
+      });
+
+      editBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        tasks[idx]._editing = true;
+        renderTasks();
+      });
+
+      deleteBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        /* Subtle fade-out before remove */
+        item.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        item.style.opacity    = '0';
+        item.style.transform  = 'translateX(8px)';
+        setTimeout(() => {
+          tasks.splice(idx, 1);
+          saveTasks(); renderTasks();
+        }, 200);
+      });
+    }
 
     list.appendChild(item);
   });
@@ -1197,15 +1532,7 @@ function applyCalURL(url) {
 }
 
 // Hardcoded default — loads automatically even on first visit
-const DEFAULT_CAL_URL = 'https://calendar.google.com/calendar/embed'
-    + '?src=eldanpaderan12%40gmail.com'
-    + '&src=94sfh1hhfe3326qt80fn7bar34%40group.calendar.google.com'
-    + '&src=b2uj5m28ui1usmav7c5hp4nvto%40group.calendar.google.com'
-    + '&src=family02873867511177023613%40group.calendar.google.com'
-    + '&src=hv778q3rqc5jjbofc8l3b8f7gc%40group.calendar.google.com'
-    + '&src=mh45gb6q5dtcjuilmcutk62mm4%40group.calendar.google.com'
-    + '&src=i21s086r1c2d5mvtg3n9c34glo%40group.calendar.google.com'
-    + '&ctz=Asia%2FManila&mode=AGENDA';
+const DEFAULT_CAL_URL = '';
 
 // Restore from localStorage, fall back to hardcoded default
 const savedCalURL = localStorage.getItem(LS_CAL_KEY) || DEFAULT_CAL_URL;
@@ -1225,14 +1552,98 @@ document.getElementById('cal-clear-btn').addEventListener('click', () => {
 });
 
 /* ================================================================
-   6. BUDGET — Static progress bars
+   6. BUDGET — localStorage-backed with Add / Edit / Delete
 ================================================================ */
+
+const LS_BUDGET_KEY = 'hd_budget_v1';
+const COLOR_CLASSES = ['pf-teal','pf-emerald','pf-amber','pf-rose','pf-blue','pf-purple'];
+const COLOR_LABELS  = { 'pf-teal':'#14b8a6','pf-emerald':'#10b981','pf-amber':'#f59e0b','pf-rose':'#f43f5e','pf-blue':'#3b82f6','pf-purple':'#a855f7' };
+
+let budgetItems = [];
+
+function loadBudget() {
+  try {
+    const saved = localStorage.getItem(LS_BUDGET_KEY);
+    budgetItems = saved ? JSON.parse(saved) : [
+      { id:'b1', label:'Groceries',  spent:4200, total:6000, colorClass:'pf-teal'    },
+      { id:'b2', label:'Bills',      spent:3800, total:5000, colorClass:'pf-rose'    },
+      { id:'b3', label:'Transport',  spent:1100, total:2000, colorClass:'pf-amber'   },
+      { id:'b4', label:'Savings',    spent:5000, total:8000, colorClass:'pf-emerald' },
+    ];
+  } catch { budgetItems = []; }
+}
+
+function saveBudget() {
+  localStorage.setItem(LS_BUDGET_KEY, JSON.stringify(budgetItems));
+}
+
+/* Build the colour dot picker HTML */
+function colorPickerHTML(selectedClass) {
+  return COLOR_CLASSES.map(c =>
+    `<div class="color-dot ${c}${c === selectedClass ? ' selected' : ''}" data-color="${c}" title="${c}" style="background:${COLOR_LABELS[c]}"></div>`
+  ).join('');
+}
+
+/* Build an edit form for a budget item (or blank for new) */
+function buildEditForm(item, onSave, onCancel) {
+  const form = document.createElement('div');
+  form.className = 'budget-edit-form';
+  form.innerHTML = `
+    <div class="budget-edit-row">
+      <span class="budget-edit-label">Label</span>
+      <input class="budget-edit-input" id="bef-label" type="text" maxlength="24" value="${escapeHTML(item ? item.label : '')}" placeholder="e.g. Rent" />
+    </div>
+    <div class="budget-edit-row">
+      <span class="budget-edit-label">Spent ₱</span>
+      <input class="budget-edit-input" id="bef-spent" type="number" min="0" value="${item ? item.spent : ''}" placeholder="0" />
+    </div>
+    <div class="budget-edit-row">
+      <span class="budget-edit-label">Budget ₱</span>
+      <input class="budget-edit-input" id="bef-total" type="number" min="1" value="${item ? item.total : ''}" placeholder="0" />
+    </div>
+    <div class="budget-edit-row">
+      <span class="budget-edit-label">Color</span>
+      <div class="budget-color-pick" id="bef-colors">${colorPickerHTML(item ? item.colorClass : 'pf-teal')}</div>
+    </div>
+    <div class="budget-edit-actions">
+      <button class="budget-cancel-btn" id="bef-cancel">Cancel</button>
+      <button class="budget-save-btn"   id="bef-save">Save</button>
+    </div>
+  `;
+
+  /* Colour dot selection */
+  let selectedColor = item ? item.colorClass : 'pf-teal';
+  form.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      form.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+      selectedColor = dot.dataset.color;
+    });
+  });
+
+  form.querySelector('#bef-save').addEventListener('click', () => {
+    const label = form.querySelector('#bef-label').value.trim();
+    const spent = parseFloat(form.querySelector('#bef-spent').value) || 0;
+    const total = parseFloat(form.querySelector('#bef-total').value) || 1;
+    if (!label) { form.querySelector('#bef-label').focus(); return; }
+    onSave({ label, spent, total, colorClass: selectedColor });
+  });
+
+  form.querySelector('#bef-cancel').addEventListener('click', onCancel);
+
+  /* Enter key saves */
+  form.querySelectorAll('.budget-edit-input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') form.querySelector('#bef-save').click(); });
+  });
+
+  return form;
+}
+
 function renderBudget() {
   const grid    = document.getElementById('budget-grid');
   const summary = document.getElementById('budget-summary');
   const monthEl = document.getElementById('budget-month');
 
-  // Show current month
   monthEl.textContent = new Date().toLocaleDateString(navigator.language || 'en-PH', {
     month: 'long', year: 'numeric'
   });
@@ -1240,44 +1651,87 @@ function renderBudget() {
   grid.innerHTML = '';
   let totalSpent = 0, totalBudget = 0;
 
-  BUDGET_DATA.forEach(item => {
+  budgetItems.forEach((item, idx) => {
     totalSpent  += item.spent;
     totalBudget += item.total;
-    const pct    = Math.min(Math.round((item.spent / item.total) * 100), 100);
 
-    // Pick text color for percentage
-    let pctColor = 'var(--teal)';
-    if (pct >= 90) pctColor = 'var(--rose)';
-    else if (pct >= 70) pctColor = 'var(--amber)';
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-direction:column;gap:0.3rem;';
 
-    const col = document.createElement('div');
-    col.className = 'budget-item';
-    col.innerHTML = `
-      <div class="budget-label">${escapeHTML(item.label)}</div>
-      <div class="budget-amounts">
-        <span class="budget-spent">₱${item.spent.toLocaleString()}</span>
-        <span class="budget-total">/ ₱${item.total.toLocaleString()}</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill ${item.colorClass}" style="width:0%" data-target="${pct}"></div>
-      </div>
-      <div class="budget-pct" style="color:${pctColor}">${pct}%</div>
-    `;
-    grid.appendChild(col);
-  });
+    if (item._editing) {
+      /* ── EDIT MODE ── */
+      const form = buildEditForm(item,
+        ({ label, spent, total, colorClass }) => {
+          budgetItems[idx] = { ...budgetItems[idx], label, spent, total, colorClass, _editing: false };
+          saveBudget(); renderBudget();
+        },
+        () => { budgetItems[idx]._editing = false; renderBudget(); }
+      );
+      wrapper.appendChild(form);
+      requestAnimationFrame(() => form.querySelector('#bef-label').focus());
 
-  // Animate progress bars after paint
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.querySelectorAll('.progress-fill[data-target]').forEach(bar => {
-        bar.style.width = bar.dataset.target + '%';
+    } else {
+      /* ── NORMAL MODE ── */
+      const pct      = Math.min(Math.round((item.spent / item.total) * 100), 100);
+      let pctColor   = 'var(--teal)';
+      if (pct >= 90)      pctColor = 'var(--rose)';
+      else if (pct >= 70) pctColor = 'var(--amber)';
+
+      const col = document.createElement('div');
+      col.className = 'budget-item';
+      col.innerHTML = `
+        <div class="budget-item-actions">
+          <button class="budget-act-btn edit" title="Edit">
+            <svg width="10" height="10" viewBox="0 0 11 11" fill="none">
+              <path d="M7.5 1.5l2 2L3 10H1V8L7.5 1.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="budget-act-btn delete" title="Delete">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+              <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="budget-label">${escapeHTML(item.label)}</div>
+        <div class="budget-amounts">
+          <span class="budget-spent">₱${item.spent.toLocaleString()}</span>
+          <span class="budget-total">/ ₱${item.total.toLocaleString()}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill ${item.colorClass}" style="width:0%" data-target="${pct}"></div>
+        </div>
+        <div class="budget-pct" style="color:${pctColor}">${pct}%</div>
+      `;
+
+      col.querySelector('.budget-act-btn.edit').addEventListener('click', e => {
+        e.stopPropagation();
+        budgetItems[idx]._editing = true;
+        renderBudget();
       });
-    });
+
+      col.querySelector('.budget-act-btn.delete').addEventListener('click', e => {
+        e.stopPropagation();
+        col.style.transition = 'opacity 0.2s ease';
+        col.style.opacity    = '0';
+        setTimeout(() => { budgetItems.splice(idx, 1); saveBudget(); renderBudget(); }, 200);
+      });
+
+      wrapper.appendChild(col);
+    }
+
+    grid.appendChild(wrapper);
   });
 
-  // Summary stats
-  const remaining = totalBudget - totalSpent;
-  const overallPct = Math.round((totalSpent / totalBudget) * 100);
+  /* Animate bars */
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.progress-fill[data-target]').forEach(bar => {
+      bar.style.width = bar.dataset.target + '%';
+    });
+  }));
+
+  /* Summary */
+  const remaining  = totalBudget - totalSpent;
+  const overallPct = totalBudget ? Math.round((totalSpent / totalBudget) * 100) : 0;
   summary.innerHTML = `
     <div class="summary-stat">
       <span class="summary-label">Total Spent</span>
@@ -1298,6 +1752,35 @@ function renderBudget() {
   `;
 }
 
+/* Add budget item */
+const budgetAddBtn  = document.getElementById('budget-add-btn');
+const budgetAddForm = document.getElementById('budget-add-form');
+
+budgetAddBtn.addEventListener('click', () => {
+  if (budgetAddForm.style.display !== 'none') {
+    budgetAddForm.style.display = 'none';
+    budgetAddForm.innerHTML = '';
+    return;
+  }
+  budgetAddForm.style.display = 'block';
+  const form = buildEditForm(null,
+    ({ label, spent, total, colorClass }) => {
+      budgetItems.push({ id: 'b' + Date.now(), label, spent, total, colorClass });
+      saveBudget();
+      budgetAddForm.style.display = 'none';
+      budgetAddForm.innerHTML = '';
+      renderBudget();
+    },
+    () => {
+      budgetAddForm.style.display = 'none';
+      budgetAddForm.innerHTML = '';
+    }
+  );
+  budgetAddForm.innerHTML = '';
+  budgetAddForm.appendChild(form);
+  requestAnimationFrame(() => form.querySelector('#bef-label').focus());
+});
+
 /* ================================================================
    7. UTILITIES
 ================================================================ */
@@ -1317,6 +1800,7 @@ function escapeHTML(str) {
 ================================================================ */
 loadTasks();
 renderTasks();
+loadBudget();
 renderBudget();
 
 /* ================================================================
