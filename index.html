@@ -1732,14 +1732,33 @@ function renderBudget() {
   /* Summary */
   const remaining  = totalBudget - totalSpent;
   const overallPct = totalBudget ? Math.round((totalSpent / totalBudget) * 100) : 0;
+
   summary.innerHTML = `
     <div class="summary-stat">
       <span class="summary-label">Total Spent</span>
       <span class="summary-value" style="color:var(--rose)">₱${totalSpent.toLocaleString()}</span>
     </div>
-    <div class="summary-stat">
-      <span class="summary-label">Total Budget</span>
-      <span class="summary-value" style="color:#fff">₱${totalBudget.toLocaleString()}</span>
+    <div class="summary-stat" id="summary-budget-stat">
+      <span class="summary-label">Total Budget <span style="color:var(--teal);font-size:0.5rem;letter-spacing:0.1em;">✎</span></span>
+      <div id="summary-budget-display">
+        <span class="summary-value" id="summary-budget-val" style="color:#fff;cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.2);padding-bottom:1px;">₱${totalBudget.toLocaleString()}</span>
+      </div>
+      <div id="summary-budget-edit" style="display:none;margin-top:0.3rem;">
+        <div style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap;">
+          <input id="budget-total-inp" type="number" min="0" value="${totalBudget}"
+            style="width:100px;background:rgba(255,255,255,0.07);border:1px solid var(--teal-glow);
+                   border-radius:5px;padding:0.25rem 0.45rem;font-family:var(--font-mono);
+                   font-size:0.9rem;color:#fff;outline:none;" />
+          <button id="budget-total-save"
+            style="padding:0.25rem 0.6rem;font-family:var(--font-mono);font-size:0.6rem;letter-spacing:0.08em;
+                   background:var(--teal-dim);border:1px solid var(--teal-glow);
+                   border-radius:5px;color:var(--teal);cursor:pointer;">Save</button>
+          <button id="budget-total-cancel"
+            style="padding:0.25rem 0.6rem;font-family:var(--font-mono);font-size:0.6rem;letter-spacing:0.08em;
+                   background:transparent;border:1px solid var(--border);
+                   border-radius:5px;color:var(--muted);cursor:pointer;">Cancel</button>
+        </div>
+      </div>
     </div>
     <div class="summary-stat">
       <span class="summary-label">Remaining</span>
@@ -1750,9 +1769,52 @@ function renderBudget() {
       <span class="summary-value" style="color:var(--amber)">${overallPct}%</span>
     </div>
   `;
-}
 
-/* Add budget item */
+  /* Wire up inline edit after innerHTML is set */
+  const budgetValEl    = document.getElementById('summary-budget-val');
+  const budgetDisplay  = document.getElementById('summary-budget-display');
+  const budgetEditDiv  = document.getElementById('summary-budget-edit');
+  const budgetInp      = document.getElementById('budget-total-inp');
+  const budgetSaveBtn  = document.getElementById('budget-total-save');
+  const budgetCancelBtn= document.getElementById('budget-total-cancel');
+
+  /* Show input on click */
+  budgetValEl.addEventListener('click', () => {
+    budgetDisplay.style.display = 'none';
+    budgetEditDiv.style.display = 'block';
+    budgetInp.value = budgetItems.reduce((s, i) => s + (i.total || 0), 0);
+    budgetInp.focus();
+    budgetInp.select();
+  });
+
+  const doSaveTotalBudget = () => {
+    const newTotal = parseFloat(budgetInp.value);
+    if (!newTotal || newTotal <= 0) { budgetInp.focus(); return; }
+    const oldTotal = budgetItems.reduce((s, i) => s + (i.total || 0), 0);
+    if (oldTotal > 0) {
+      budgetItems.forEach(item => {
+        item.total = Math.round((item.total / oldTotal) * newTotal);
+      });
+    } else {
+      const share = Math.round(newTotal / (budgetItems.length || 1));
+      budgetItems.forEach(item => { item.total = share; });
+    }
+    saveBudget();
+    renderBudget();
+  };
+
+  const doCancelTotalBudget = () => {
+    budgetDisplay.style.display = 'block';
+    budgetEditDiv.style.display = 'none';
+  };
+
+  budgetSaveBtn.addEventListener('click', doSaveTotalBudget);
+  budgetCancelBtn.addEventListener('click', doCancelTotalBudget);
+  budgetInp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  doSaveTotalBudget();
+    if (e.key === 'Escape') doCancelTotalBudget();
+  });
+}  /* ← end renderBudget */
 const budgetAddBtn  = document.getElementById('budget-add-btn');
 const budgetAddForm = document.getElementById('budget-add-form');
 
