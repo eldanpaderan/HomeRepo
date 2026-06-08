@@ -1197,7 +1197,15 @@ function applyCalURL(url) {
 }
 
 // Hardcoded default — loads automatically even on first visit
-const DEFAULT_CAL_URL = 'https://calendar.google.com/calendar/embed?src=eldanpaderan12%40gmail.com&ctz=Asia%2FManila&mode=AGENDA';
+const DEFAULT_CAL_URL = 'https://calendar.google.com/calendar/embed'
+    + '?src=eldanpaderan12%40gmail.com'
+    + '&src=94sfh1hhfe3326qt80fn7bar34%40group.calendar.google.com'
+    + '&src=b2uj5m28ui1usmav7c5hp4nvto%40group.calendar.google.com'
+    + '&src=family02873867511177023613%40group.calendar.google.com'
+    + '&src=hv778q3rqc5jjbofc8l3b8f7gc%40group.calendar.google.com'
+    + '&src=mh45gb6q5dtcjuilmcutk62mm4%40group.calendar.google.com'
+    + '&src=i21s086r1c2d5mvtg3n9c34glo%40group.calendar.google.com'
+    + '&ctz=Asia%2FManila&mode=AGENDA';
 
 // Restore from localStorage, fall back to hardcoded default
 const savedCalURL = localStorage.getItem(LS_CAL_KEY) || DEFAULT_CAL_URL;
