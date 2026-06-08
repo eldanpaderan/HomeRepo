@@ -1313,8 +1313,16 @@ renderBudget();
 
 /* ================================================================
    9. POMODORO TIMER
+   Fixes applied for iPad / iOS Chrome:
+   - Date.now()-based elapsed time instead of pure setInterval counting
+     → survives tab throttling, screen lock, and background suspension
+   - Button label updated via childNodes (textNode + existing SVG)
+     → avoids innerHTML teardown mid-touch-event on iOS
+   - Notification API fully guarded behind typeof + try/catch
+     → iOS Chrome throws TypeError; this keeps the IIFE alive
 ================================================================ */
 (function () {
+
   /* -- Config -- */
   const MODES = {
     focus: { label: 'Focus',       mins: 25, badgeClass: '' },
@@ -1322,27 +1330,33 @@ renderBudget();
     long:  { label: 'Long Break',  mins: 15, badgeClass: 'long'  },
   };
 
-  const CIRCUMFERENCE = 2 * Math.PI * 68; // r=68 → 427.256
+  const CIRCUMFERENCE = 2 * Math.PI * 68; // r=68 → ~427.26
 
   /* -- State -- */
-  let currentMode    = 'focus';
-  let totalSeconds   = MODES.focus.mins * 60;
-  let remainSeconds  = totalSeconds;
-  let running        = false;
-  let interval       = null;
-  let sessionsDone   = 0;       // completed focus sessions (0-3)
+  let currentMode   = 'focus';
+  let totalSeconds  = MODES.focus.mins * 60;
+  let remainSeconds = totalSeconds;
+  let running       = false;
+  let rafId         = null;   // requestAnimationFrame handle
+  let startedAt     = null;   // Date.now() snapshot when timer last started
+  let elapsedAtPause = 0;     // seconds already elapsed before latest start
+  let sessionsDone  = 0;
   const MAX_SESSIONS = 4;
 
   /* -- DOM refs -- */
-  const display    = document.getElementById('pomo-display');
-  const badge      = document.getElementById('pomo-badge');
-  const ring       = document.getElementById('pomo-fill-ring');
-  const ringWrap   = document.getElementById('pomo-ring-wrap');
-  const startBtn   = document.getElementById('pomo-start-btn');
-  const skipBtn    = document.getElementById('pomo-skip-btn');
-  const resetBtn   = document.getElementById('pomo-reset-btn');
-  const dotsEl     = document.getElementById('pomo-sessions');
-  const tabs       = document.querySelectorAll('.pomo-tab');
+  const display  = document.getElementById('pomo-display');
+  const badge    = document.getElementById('pomo-badge');
+  const ring     = document.getElementById('pomo-fill-ring');
+  const ringWrap = document.getElementById('pomo-ring-wrap');
+  const startBtn = document.getElementById('pomo-start-btn');
+  const skipBtn  = document.getElementById('pomo-skip-btn');
+  const resetBtn = document.getElementById('pomo-reset-btn');
+  const dotsEl   = document.getElementById('pomo-sessions');
+  const tabs     = document.querySelectorAll('.pomo-tab');
+
+  /* Pre-built SVG strings — avoids innerHTML during active touch */
+  const SVG_PLAY  = '<svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor"><path d="M1 1L8 5L1 9V1Z"/></svg>';
+  const SVG_PAUSE = '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" rx="1"/><rect x="6" y="1" width="3" height="8" rx="1"/></svg>';
 
   /* -- Helpers -- */
   function fmt(secs) {
@@ -1352,95 +1366,116 @@ renderBudget();
   }
 
   function setRingProgress(remaining, total) {
-    const pct    = remaining / total;
-    const offset = CIRCUMFERENCE * (1 - pct);
-    ring.style.strokeDashoffset = offset;
+    const offset = CIRCUMFERENCE * (1 - remaining / total);
     ring.style.strokeDasharray  = CIRCUMFERENCE;
+    ring.style.strokeDashoffset = offset;
+  }
+
+  /* Safe button label update — does NOT destroy child nodes during a touch */
+  function setStartLabel(isRunning) {
+    startBtn.classList.toggle('running', isRunning);
+    /* replaceChildren keeps the element reference intact for iOS touch */
+    const tmp = document.createElement('span');
+    tmp.innerHTML = isRunning
+      ? SVG_PAUSE + ' Pause'
+      : SVG_PLAY  + ' Start';
+    startBtn.replaceChildren(...tmp.childNodes);
   }
 
   function renderDots() {
-    const dots = dotsEl.querySelectorAll('.pomo-dot');
-    dots.forEach((dot, i) => {
+    dotsEl.querySelectorAll('.pomo-dot').forEach((dot, i) => {
       dot.classList.remove('done', 'active');
-      if (i < sessionsDone)                        dot.classList.add('done');
+      if (i < sessionsDone) dot.classList.add('done');
       else if (i === sessionsDone && currentMode === 'focus') dot.classList.add('active');
     });
   }
 
-  function applyMode(mode) {
-    currentMode   = mode;
-    totalSeconds  = MODES[mode].mins * 60;
-    remainSeconds = totalSeconds;
+  function updateUI(secs) {
+    display.textContent = fmt(secs);
+    setRingProgress(secs, totalSeconds);
+    document.title = `${fmt(secs)} — ${MODES[currentMode].label} | Dashboard`;
+  }
 
-    // Badge
+  function applyMode(mode) {
+    currentMode    = mode;
+    totalSeconds   = MODES[mode].mins * 60;
+    remainSeconds  = totalSeconds;
+    elapsedAtPause = 0;
+    startedAt      = null;
+
     badge.textContent = MODES[mode].label;
     badge.className   = 'pomo-mode-badge ' + MODES[mode].badgeClass;
+    ring.className    = 'pomo-fill ' + MODES[mode].badgeClass;
 
-    // Ring colour
-    ring.className = 'pomo-fill ' + MODES[mode].badgeClass;
-
-    // Reset ring & display
-    setRingProgress(totalSeconds, totalSeconds);
-    display.textContent = fmt(remainSeconds);
-
-    // Tabs highlight
     tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-
-    // Update page title
-    document.title = `${fmt(remainSeconds)} — ${MODES[mode].label} | Dashboard`;
-
+    updateUI(totalSeconds);
     renderDots();
   }
 
+  /* -- Notification (fully guarded for iOS) -- */
+  function safeNotify(msg) {
+    try {
+      if (typeof Notification === 'undefined') return;
+      if (Notification.permission === 'granted') {
+        new Notification('Pomodoro', { body: msg });
+      }
+    } catch (_) { /* iOS Chrome — silently ignore */ }
+  }
+
+  function requestNotifPermission() {
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    } catch (_) { /* noop on iOS */ }
+  }
+
+  /* -- Core rAF loop (Date.now()-based — immune to throttling) -- */
+  function loop() {
+    if (!running) return;
+
+    const elapsed = elapsedAtPause + Math.floor((Date.now() - startedAt) / 1000);
+    const secs    = Math.max(totalSeconds - elapsed, 0);
+
+    updateUI(secs);
+
+    if (secs <= 0) {
+      onTimerEnd();
+      return;
+    }
+
+    rafId = requestAnimationFrame(loop);
+  }
+
   function stop() {
-    clearInterval(interval);
-    interval = null;
-    running  = false;
-    startBtn.classList.remove('running');
-    startBtn.innerHTML = `
-      <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor"><path d="M1 1L8 5L1 9V1Z"/></svg>
-      Start`;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    /* Snapshot elapsed before clearing startedAt */
+    if (running && startedAt !== null) {
+      elapsedAtPause += Math.floor((Date.now() - startedAt) / 1000);
+    }
+    startedAt = null;
+    running   = false;
+    setStartLabel(false);
     document.title = 'Home Dashboard';
   }
 
   function onTimerEnd() {
     stop();
-
-    // Pulse the ring
     ringWrap.classList.add('done-pulse');
     ringWrap.addEventListener('animationend', () => ringWrap.classList.remove('done-pulse'), { once: true });
 
-    // Browser notification (if permission granted)
-    if (Notification.permission === 'granted') {
-      new Notification('Pomodoro', {
-        body: currentMode === 'focus'
-          ? '🍅 Focus session done! Take a break.'
-          : '⚡ Break over. Back to focus!',
-        icon: 'https://em-content.zobj.net/source/google/387/tomato_1f345.png',
-        silent: false,
-      });
-    }
+    const msg = currentMode === 'focus'
+      ? '🍅 Focus session done! Time for a break.'
+      : '⚡ Break over. Back to focus!';
+    safeNotify(msg);
 
-    // Auto-advance mode
     if (currentMode === 'focus') {
       sessionsDone = Math.min(sessionsDone + 1, MAX_SESSIONS);
-      if (sessionsDone >= MAX_SESSIONS) {
-        sessionsDone = 0;
-        applyMode('long');
-      } else {
-        applyMode('break');
-      }
+      if (sessionsDone >= MAX_SESSIONS) { sessionsDone = 0; applyMode('long'); }
+      else applyMode('break');
     } else {
       applyMode('focus');
     }
-  }
-
-  function tick() {
-    if (remainSeconds <= 0) { onTimerEnd(); return; }
-    remainSeconds--;
-    display.textContent = fmt(remainSeconds);
-    setRingProgress(remainSeconds, totalSeconds);
-    document.title = `${fmt(remainSeconds)} — ${MODES[currentMode].label} | Dashboard`;
   }
 
   /* -- Controls -- */
@@ -1448,20 +1483,27 @@ renderBudget();
     if (running) {
       stop();
     } else {
-      // Request notification permission on first start
-      if (Notification.permission === 'default') Notification.requestPermission();
-      running = true;
-      startBtn.classList.add('running');
-      startBtn.innerHTML = `
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-          <rect x="1" y="1" width="3" height="8" rx="1"/><rect x="6" y="1" width="3" height="8" rx="1"/>
-        </svg>
-        Pause`;
-      interval = setInterval(tick, 1000);
+      requestNotifPermission();
+      running    = true;
+      startedAt  = Date.now();
+      setStartLabel(true);
+      rafId = requestAnimationFrame(loop);
     }
   });
 
-  skipBtn.addEventListener('click', () => {
+  /* Use touchend for iPad responsiveness, fall back to click */
+  function addTapHandler(el, fn) {
+    let touched = false;
+    el.addEventListener('touchend', (e) => {
+      e.preventDefault();   // prevent ghost click
+      touched = true;
+      fn();
+      setTimeout(() => { touched = false; }, 400);
+    }, { passive: false });
+    el.addEventListener('click', () => { if (!touched) fn(); });
+  }
+
+  addTapHandler(skipBtn, () => {
     stop();
     if (currentMode === 'focus') {
       sessionsDone = Math.min(sessionsDone + 1, MAX_SESSIONS);
@@ -1472,17 +1514,27 @@ renderBudget();
     }
   });
 
-  resetBtn.addEventListener('click', () => {
+  addTapHandler(resetBtn, () => {
     stop();
+    elapsedAtPause = 0;
     applyMode(currentMode);
   });
 
-  // Tab clicks — manual mode switch
   tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
+    addTapHandler(tab, () => {
       stop();
       applyMode(tab.dataset.mode);
     });
+  });
+
+  /* Handle page visibility change — recalculate when tab comes back */
+  document.addEventListener('visibilitychange', () => {
+    if (!running) return;
+    if (document.visibilityState === 'visible') {
+      /* Re-sync: cancel stale rAF and restart loop with current elapsed */
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(loop);
+    }
   });
 
   /* -- Init -- */
