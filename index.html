@@ -105,7 +105,6 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 1.5rem;
-      /* Fixed height per section, override per card */
       height: 460px;
       display: flex;
       flex-direction: column;
@@ -501,16 +500,30 @@
     ============================================================ */
     #budget-card {
       grid-area: budget;
-      height: auto; /* let budget breathe */
+      height: 460px; /* fixed height like other cards */
+      overflow: hidden; /* card clips, inner body scrolls */
     }
+
+    /* Make the budget grid area scrollable */
+    #budget-card .card-body-budget {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    #budget-card .card-body-budget::-webkit-scrollbar { display: none; }
 
     .budget-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
+      padding-bottom: 0.5rem;
     }
     @media (min-width: 768px) {
-      .budget-grid { grid-template-columns: repeat(4, 1fr); }
+      .budget-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
     }
 
     .budget-item { display: flex; flex-direction: column; gap: 0.45rem; }
@@ -571,6 +584,7 @@
     .budget-summary {
       margin-top: 1.25rem;
       padding-top: 1rem;
+      padding-bottom: 0.75rem;
       border-top: 1px solid var(--border);
       display: flex;
       gap: 1.5rem;
@@ -1207,17 +1221,20 @@
       Budget Snapshot — <span id="budget-month" style="color:var(--teal)">May 2025</span>
     </div>
 
-    <!-- Budget bars grid (populated by JS) -->
-    <div class="budget-grid" id="budget-grid"></div>
+    <!-- Scrollable budget body -->
+    <div class="card-body-budget">
+      <!-- Budget bars grid (populated by JS) -->
+      <div class="budget-grid" id="budget-grid"></div>
 
-    <!-- Add new budget item -->
-    <div class="budget-add-row" id="budget-add-row">
-      <button class="btn-budget-add" id="budget-add-btn">+ Add Budget Item</button>
-      <div id="budget-add-form" style="display:none; margin-top:0.6rem;"></div>
+      <!-- Add new budget item -->
+      <div class="budget-add-row" id="budget-add-row">
+        <button class="btn-budget-add" id="budget-add-btn">+ Add Budget Item</button>
+        <div id="budget-add-form" style="display:none; margin-top:0.6rem;"></div>
+      </div>
+
+      <!-- Summary totals -->
+      <div class="budget-summary" id="budget-summary"></div>
     </div>
-
-    <!-- Summary totals -->
-    <div class="budget-summary" id="budget-summary"></div>
   </div><!-- /budget-card -->
 
 </div><!-- /app -->
