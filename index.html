@@ -238,6 +238,83 @@
     ============================================================ */
     #tasks-card { grid-area: tasks; }
 
+    /* ── PLANNER SYNC LAYER (additive, non-breaking) ── */
+    #routine-period-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    #routine-period-label .routine-period-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: inline-block;
+    }
+    #routine-planner-list { margin-top: 0.25rem; }
+    .routine-planner-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.5rem 0.4rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .routine-planner-item:hover { background: rgba(255,255,255,0.03); }
+    .routine-planner-check {
+      width: 16px; height: 16px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      transition: all 0.18s ease;
+    }
+    .routine-planner-item.done .routine-planner-check {
+      background: var(--teal);
+      border-color: var(--teal);
+    }
+    .routine-planner-label {
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: color 0.18s;
+      line-height: 1.3;
+    }
+    .routine-planner-item.done .routine-planner-label {
+      color: var(--muted);
+      text-decoration: line-through;
+      text-decoration-color: rgba(255,255,255,0.18);
+    }
+    .routine-planner-empty {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 0.75rem 0 0.25rem;
+      opacity: 0.6;
+    }
+    #routine-sync-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.75rem 0 0.5rem;
+    }
+    #routine-legacy-label {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.18);
+      margin-bottom: 0.4rem;
+    }
+
     .task-progress-bar {
       height: 2px;
       background: var(--border);
@@ -1145,6 +1222,15 @@
       Morning Routine
       <span class="live-dot" aria-hidden="true"></span>
     </div>
+
+    <!-- PLANNER SYNC — period label + live planner checklist (additive) -->
+    <div id="routine-period-label">
+      <span class="routine-period-dot"></span>
+      <span id="routine-period-name">Morning</span>
+    </div>
+    <div id="routine-planner-list" class="card-body"></div>
+    <div id="routine-sync-divider"></div>
+    <div id="routine-legacy-label">Checklist</div>
 
     <!-- Progress bar -->
     <div class="task-progress-bar">
@@ -3198,11 +3284,99 @@ function init(){
   initBackupRestore();
   setInterval(createBackup,10*60*1000);
   renderDashboard();
+  // Initial planner → dashboard sync (additive)
+  syncPlannerToRoutine();
   console.info('[Productivity Center] loaded. Keys: homeRepo_productivity, homeRepo_productivity_settings, homeRepo_productivity_backup');
 }
 
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}
 else{setTimeout(init,0);}
+
+/* ══════════════════════════════════════════
+   PLANNER → DASHBOARD SYNC (additive)
+   Source of truth: state.plannerItems
+   Target: #routine-period-label, #routine-planner-list
+   Non-breaking: reads planner data, writes only to new elements.
+   Existing task-list, hd_tasks_v1, renderTasks() untouched.
+══════════════════════════════════════════ */
+
+function getPlannerPeriod(){
+  const h=new Date().getHours();
+  if(h>=5  && h<12) return 'Morning';
+  if(h>=12 && h<18) return 'Afternoon';
+  return 'Evening';
+}
+
+function syncPlannerToRoutine(){
+  const periodEl  = document.getElementById('routine-period-name');
+  const listEl    = document.getElementById('routine-planner-list');
+  if(!periodEl || !listEl) return;
+
+  const period    = getPlannerPeriod();
+  const todayKey  = 'planner_' + today();
+  const items     = state.plannerItems.filter(
+    i => i.dateKey === todayKey && i.period === period
+  );
+
+  // Update period label
+  periodEl.textContent = period;
+
+  // Separate remaining vs completed for display ordering
+  const remaining  = items.filter(i => !i.done);
+  const completed  = items.filter(i => i.done);
+  const ordered    = [...remaining, ...completed];
+
+  if(!ordered.length){
+    listEl.innerHTML = '<div class="routine-planner-empty">No scheduled tasks for this period.</div>';
+    return;
+  }
+
+  const checkSVG = '<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.2 5.5L8 1" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  listEl.innerHTML = ordered.map(p => `
+    <div class="routine-planner-item${p.done?' done':''}" data-sync-pid="${p.id}">
+      <div class="routine-planner-check">${p.done ? checkSVG : ''}</div>
+      <span class="routine-planner-label">${escH(p.label)}</span>
+    </div>`).join('');
+
+  // Wire up toggle — updates plannerItems directly, then re-syncs both views
+  listEl.querySelectorAll('.routine-planner-item').forEach(row => {
+    row.addEventListener('click', () => {
+      const pid = row.dataset.syncPid;
+      const p   = state.plannerItems.find(x => x.id === pid);
+      if(!p) return;
+      p.done = !p.done;
+      saveState();
+      syncPlannerToRoutine();   // update dashboard immediately
+      // If planner view is currently open, keep it in sync too
+      const plannerView = document.getElementById('view-planner');
+      if(plannerView && plannerView.classList.contains('active')) renderPlanner();
+    });
+  });
+}
+
+/* Wrap renderPlanner so every planner change also updates the dashboard */
+const _origRenderPlanner = renderPlanner;
+renderPlanner = function(){
+  _origRenderPlanner.apply(this, arguments);
+  syncPlannerToRoutine();
+};
+
+/* Also wrap initPlanner's add so dashboard reflects new items instantly */
+const _origInitPlanner = initPlanner;
+initPlanner = function(){
+  _origInitPlanner.apply(this, arguments);
+  // Patch each add-btn to also call sync after saving
+  document.querySelectorAll('.planner-add-btn').forEach(btn => {
+    const orig = btn.onclick; // no-op, events are via addEventListener
+    btn.addEventListener('click', () => {
+      // syncPlannerToRoutine is already called via wrapped renderPlanner
+    });
+  });
+};
+
+/* Auto-switch period every 60 seconds as time changes */
+setInterval(syncPlannerToRoutine, 60 * 1000);
 
 })();
 </script>
