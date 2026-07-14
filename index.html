@@ -315,6 +315,111 @@
       margin-bottom: 0.4rem;
     }
 
+    /* ── TODAY'S FOCUS enhancements ── */
+    #routine-period-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+    }
+    .routine-period-title {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.3);
+      margin-left: 0.1rem;
+    }
+    .routine-open-planner-btn {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.55rem;
+      background: rgba(20,184,166,0.08);
+      border: 1px solid rgba(20,184,166,0.2);
+      border-radius: 5px;
+      color: var(--teal);
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .routine-open-planner-btn:hover { background: rgba(20,184,166,0.18); }
+
+    /* Progress row */
+    .tf-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.6rem;
+    }
+    .tf-progress-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .tf-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--emerald));
+      border-radius: 2px;
+      transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
+    }
+    .tf-progress-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--muted);
+      white-space: nowrap;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Active task banner */
+    #tf-active-task {
+      background: rgba(20,184,166,0.07);
+      border: 1px solid rgba(20,184,166,0.18);
+      border-radius: 7px;
+      padding: 0.45rem 0.65rem;
+      margin-bottom: 0.55rem;
+    }
+    .tf-active-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tf-active-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .tf-active-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tf-active-timer {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--teal);
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
+    }
+
+    /* Quick-add row */
+    .tf-quickadd-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+    }
+
     .task-progress-bar {
       height: 2px;
       background: var(--border);
@@ -1219,36 +1324,59 @@
         <rect x="0.5" y="0.5" width="9" height="9" rx="2" stroke="currentColor" stroke-opacity="0.7"/>
         <path d="M2.5 5L4 6.5L7.5 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      Morning Routine
+      Today's Focus
       <span class="live-dot" aria-hidden="true"></span>
     </div>
 
-    <!-- PLANNER SYNC — period label + live planner checklist (additive) -->
+    <!-- TODAY'S FOCUS — period header row -->
     <div id="routine-period-label">
       <span class="routine-period-dot"></span>
       <span id="routine-period-name">Morning</span>
+      <span id="routine-period-title" class="routine-period-title">Focus</span>
+      <button id="routine-open-planner-btn" class="routine-open-planner-btn" title="Open Daily Planner">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <rect x="0.5" y="1" width="10" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/>
+          <path d="M3 0.5V2M8 0.5V2M0.5 4H10.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+        Planner
+      </button>
     </div>
+
+    <!-- Progress bar (planner-driven) -->
+    <div class="tf-progress-wrap">
+      <div class="tf-progress-track"><div class="tf-progress-fill" id="tf-progress-fill" style="width:0%"></div></div>
+      <span class="tf-progress-label" id="tf-progress-label">0 / 0</span>
+    </div>
+
+    <!-- Active task banner -->
+    <div id="tf-active-task" style="display:none;">
+      <div class="tf-active-inner">
+        <span class="tf-active-dot"></span>
+        <span class="tf-active-title" id="tf-active-title"></span>
+        <span class="tf-active-timer" id="tf-active-timer">00:00:00</span>
+      </div>
+    </div>
+
+    <!-- Planner task list -->
     <div id="routine-planner-list" class="card-body"></div>
-    <div id="routine-sync-divider"></div>
-    <div id="routine-legacy-label">Checklist</div>
 
-    <!-- Progress bar -->
-    <div class="task-progress-bar">
-      <div class="task-progress-fill" id="task-fill" style="width:0%"></div>
-    </div>
-    <div class="task-counter"><span id="done-count">0</span> of <span id="total-count">0</span> completed</div>
-
-    <!-- Scrollable task list -->
-    <div class="card-body" id="task-list"></div>
-
-    <!-- Add task row -->
-    <div class="task-add-row">
-      <input class="task-input" id="task-input" type="text" placeholder="Add a task…" maxlength="60" />
-      <button class="task-add-btn" id="task-add-btn" aria-label="Add task">+</button>
+    <!-- Quick-add row -->
+    <div class="tf-quickadd-row">
+      <input class="task-input" id="tf-quickadd-input" type="text" placeholder="Quick add to planner…" maxlength="80" />
+      <button class="task-add-btn" id="tf-quickadd-btn" aria-label="Add to planner">+</button>
     </div>
 
-    <!-- Reset button -->
-    <button class="btn-reset" id="task-reset-btn">↺ Reset All Checkboxes</button>
+    <!-- Hidden legacy elements — IDs preserved, JS still runs, visually hidden -->
+    <div style="display:none;" aria-hidden="true">
+      <div class="task-progress-bar"><div class="task-progress-fill" id="task-fill" style="width:0%"></div></div>
+      <div class="task-counter"><span id="done-count">0</span> of <span id="total-count">0</span> completed</div>
+      <div class="card-body" id="task-list"></div>
+      <div class="task-add-row">
+        <input class="task-input" id="task-input" type="text" placeholder="Add a task…" maxlength="60" />
+        <button class="task-add-btn" id="task-add-btn" aria-label="Add task">+</button>
+      </div>
+      <button class="btn-reset" id="task-reset-btn">↺ Reset All Checkboxes</button>
+    </div>
   </div><!-- /tasks-card -->
 
 
@@ -2231,6 +2359,11 @@ renderBudget();
     <div id="prod-sidebar-footer">
       <button class="prod-action-sm" id="prod-backup-btn"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1V8M3.5 5.5L6 8L8.5 5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Backup</button>
       <button class="prod-action-sm" id="prod-restore-btn"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 11V4M3.5 6.5L6 4L8.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 2H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Restore</button>
+      <button class="prod-action-sm" id="prod-view-backups-btn"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5h5M3.5 7.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Backups</button>
+      <div id="prod-autobackup-row" style="display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.1rem;">
+        <input type="checkbox" id="prod-autobackup-toggle" style="accent-color:#14b8a6;width:12px;height:12px;cursor:pointer;" checked/>
+        <label for="prod-autobackup-toggle" style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.06em;color:rgba(255,255,255,0.3);cursor:pointer;">Auto-backup</label>
+      </div>
       <input type="file" id="prod-restore-file" accept=".json" style="display:none"/>
       <button class="prod-close-btn" id="prod-close-btn">&#x2715; Close</button>
     </div>
@@ -2255,7 +2388,11 @@ renderBudget();
     </div>
 
     <div class="prod-view" id="view-actions">
-      <div class="prod-view-header"><h1>Action Items</h1><div class="prod-header-btns"><button class="prod-btn prod-btn-teal" id="ai-new-btn">+ New</button></div></div>
+      <div class="prod-view-header"><h1>Action Items</h1><div class="prod-header-btns"><button class="prod-btn prod-btn-muted" id="ai-archived-btn" title="View archived">&#x1F5C4; Archived</button><button class="prod-btn prod-btn-teal" id="ai-new-btn">+ New</button></div></div>
+      <!-- Global Search -->
+      <div style="margin-bottom:0.75rem;position:relative;">
+        <input class="prod-filter-input" type="text" id="ai-global-search" placeholder="&#128269; Search by title, category, tags, notes, status..." style="width:100%;min-width:unset;padding-left:0.75rem;"/>
+      </div>
       <div class="prod-filters" id="ai-filters">
         <input class="prod-filter-input" type="text" id="ai-search" placeholder="Search..." />
         <select class="prod-filter-select" id="ai-filter-cat"><option value="">All Categories</option></select>
@@ -2264,6 +2401,13 @@ renderBudget();
         <select class="prod-filter-select" id="ai-sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="priority">Priority</option><option value="alpha">A-Z</option><option value="duration">Duration</option></select>
       </div>
       <div id="ai-list" class="prod-list-container"></div>
+      <!-- Archived items panel -->
+      <div id="ai-archived-panel" style="display:none;">
+        <div style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:0.75rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:0.75rem;">&#x1F5C4; Archived Tasks</div>
+        <div id="ai-archived-list" class="prod-list-container"></div>
+      </div>
+      <!-- Undo delete toast anchor -->
+      <div id="ai-undo-anchor"></div>
     </div>
 
     <div class="prod-view" id="view-board">
@@ -2325,16 +2469,89 @@ renderBudget();
     </div>
 
     <div class="prod-view" id="view-reports">
-      <div class="prod-view-header"><h1>Reports</h1></div>
+      <div class="prod-view-header"><h1>Reports</h1><span class="prod-view-date" id="report-range-label"></span></div>
+
+      <!-- Controls row -->
       <div class="prod-reports-controls">
-        <select class="prod-filter-select" id="report-range"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">This Week</option><option value="lastweek">Last Week</option><option value="month">This Month</option><option value="custom">Custom Range</option></select>
-        <div id="report-custom-dates" style="display:none;gap:0.5rem;align-items:center;"><input type="date" class="prod-filter-input" id="report-from" style="width:140px;"/><span style="color:var(--muted);font-size:0.75rem;">to</span><input type="date" class="prod-filter-input" id="report-to" style="width:140px;"/></div>
-        <button class="prod-btn prod-btn-teal" id="report-generate-btn">Generate</button>
-        <div class="prod-export-btns"><button class="prod-btn prod-btn-muted" id="report-export-csv">CSV</button><button class="prod-btn prod-btn-muted" id="report-export-json">JSON</button><button class="prod-btn prod-btn-muted" id="report-export-excel">Excel CSV</button></div>
+        <select class="prod-filter-select" id="report-range">
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="week">This Week</option>
+          <option value="lastweek">Last Week</option>
+          <option value="month">This Month</option>
+          <option value="custom">Custom Range</option>
+        </select>
+        <div id="report-custom-dates" style="display:none;gap:0.5rem;align-items:center;">
+          <input type="date" class="prod-filter-input" id="report-from" style="width:140px;"/>
+          <span style="color:var(--muted);font-size:0.75rem;">to</span>
+          <input type="date" class="prod-filter-input" id="report-to" style="width:140px;"/>
+        </div>
+        <button class="prod-btn prod-btn-teal" id="report-generate-btn">&#9654; Generate</button>
+        <div class="prod-export-btns">
+          <button class="prod-btn prod-btn-muted" id="report-export-csv">&#x2193; CSV</button>
+          <button class="prod-btn prod-btn-muted" id="report-export-json">&#x2193; JSON</button>
+          <button class="prod-btn prod-btn-muted" id="report-export-excel">&#x2193; Excel CSV</button>
+        </div>
       </div>
+
+      <!-- KPI summary cards -->
+      <div id="report-kpi-grid" class="report-summary-grid" style="display:none;"></div>
+
+      <!-- Charts row -->
+      <div id="report-charts-row" style="display:none;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;"></div>
+
+      <!-- Existing output container (keeps backward compat) -->
       <div id="report-output" class="prod-report-output"></div>
     </div>
   </main>
+</div>
+
+<!-- BACKUP HISTORY MODAL -->
+<div id="prod-backup-modal" class="prod-modal-backdrop" aria-hidden="true">
+  <div class="prod-modal" style="max-width:520px;">
+    <div class="prod-modal-header">
+      <span>&#128190; Backup History</span>
+      <button class="prod-modal-close" id="prod-backup-modal-close">&#x2715;</button>
+    </div>
+    <div class="prod-modal-body" id="prod-backup-modal-body" style="padding:1rem;">
+      <div id="prod-backup-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+    <div class="prod-modal-footer">
+      <button class="prod-btn prod-btn-muted" id="prod-backup-modal-close2">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESTORE MODE MODAL -->
+<div id="prod-restore-modal" class="prod-modal-backdrop" aria-hidden="true">
+  <div class="prod-modal" style="max-width:440px;">
+    <div class="prod-modal-header">
+      <span>&#8617; Restore Backup</span>
+      <button class="prod-modal-close" id="prod-restore-modal-close">&#x2715;</button>
+    </div>
+    <div class="prod-modal-body" style="padding:1.25rem;">
+      <div id="prod-restore-preview" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:0.85rem;margin-bottom:1rem;font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.6);line-height:1.8;"></div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">Choose restore mode:</div>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <label style="display:flex;align-items:flex-start;gap:0.6rem;cursor:pointer;padding:0.6rem;border:1px solid rgba(255,255,255,0.08);border-radius:7px;transition:border-color 0.15s;" id="restore-mode-merge-label">
+          <input type="radio" name="prod-restore-mode" value="merge" id="restore-mode-merge" checked style="accent-color:#14b8a6;margin-top:2px;"/>
+          <div><div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;color:#fff;">Merge with Existing Data</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.35);margin-top:0.15rem;">Combines backup data with current data. Keeps newest version of each item. Safe — nothing is deleted.</div></div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:0.6rem;cursor:pointer;padding:0.6rem;border:1px solid rgba(255,255,255,0.08);border-radius:7px;transition:border-color 0.15s;" id="restore-mode-replace-label">
+          <input type="radio" name="prod-restore-mode" value="replace" id="restore-mode-replace" style="accent-color:#f43f5e;margin-top:2px;"/>
+          <div><div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;color:#f43f5e;">Replace Existing Data</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.35);margin-top:0.15rem;">Overwrites all current data with backup. This cannot be undone. A safety backup is created first.</div></div>
+        </label>
+      </div>
+      <div id="prod-restore-homeRepo-row" style="margin-top:0.85rem;display:flex;align-items:center;gap:0.5rem;">
+        <input type="checkbox" id="prod-restore-homeRepo" style="accent-color:#14b8a6;width:13px;height:13px;cursor:pointer;" checked/>
+        <label for="prod-restore-homeRepo" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.4);cursor:pointer;">Also restore Dashboard modules (tasks, budget, calendar)</label>
+      </div>
+    </div>
+    <div class="prod-modal-footer">
+      <button class="prod-btn prod-btn-muted" id="prod-restore-modal-cancel">Cancel</button>
+      <button class="prod-btn prod-btn-teal" id="prod-restore-modal-confirm">Restore</button>
+    </div>
+  </div>
 </div>
 
 <div id="ai-modal" class="prod-modal-backdrop" aria-hidden="true">
@@ -2344,20 +2561,27 @@ renderBudget();
       <div class="prod-form-grid">
         <div class="prod-form-group prod-fg-full"><label>Task Title *</label><input class="prod-input" id="ai-f-title" placeholder="Enter task title..." /></div>
         <div class="prod-form-group prod-fg-full"><label>Description</label><textarea class="prod-input prod-textarea" id="ai-f-desc" placeholder="Describe the task..."></textarea></div>
-        <div class="prod-form-group"><label>Category</label><input class="prod-input" id="ai-f-cat" placeholder="e.g. Work, Church, Dev..." list="ai-cat-list"/><datalist id="ai-cat-list"></datalist></div>
-        <div class="prod-form-group"><label>Priority</label><select class="prod-input" id="ai-f-pri"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+        <div class="prod-form-group"><label>Category</label><select class="prod-input" id="ai-f-cat"><option value="">— Select —</option><option>Work</option><option>Personal</option><option>Learning</option><option>Church</option><option>Home</option><option>Health</option><option value="__custom__">Custom...</option></select></div>
+        <div class="prod-form-group" id="ai-f-cat-custom-wrap" style="display:none;"><label>Custom Category</label><input class="prod-input" id="ai-f-cat-custom" placeholder="Type category..." list="ai-cat-list"/><datalist id="ai-cat-list"></datalist></div>
+        <div class="prod-form-group"><label>Priority</label><select class="prod-input" id="ai-f-pri"><option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option></select></div>
         <div class="prod-form-group"><label>Owner</label><input class="prod-input" id="ai-f-owner" placeholder="e.g. Eldan" /></div>
         <div class="prod-form-group"><label>Est. Duration (min)</label><input class="prod-input" type="number" id="ai-f-est" placeholder="30" min="1"/></div>
+        <div class="prod-form-group"><label>Actual Duration (min)</label><input class="prod-input" type="number" id="ai-f-actual" placeholder="0" min="0"/></div>
         <div class="prod-form-group"><label>Start Date</label><input class="prod-input" type="date" id="ai-f-startdate"/></div>
         <div class="prod-form-group"><label>Start Time</label><input class="prod-input" type="time" id="ai-f-starttime"/></div>
         <div class="prod-form-group"><label>Finish Date</label><input class="prod-input" type="date" id="ai-f-finishdate"/></div>
         <div class="prod-form-group"><label>Finish Time</label><input class="prod-input" type="time" id="ai-f-finishtime"/></div>
         <div class="prod-form-group"><label>Status</label><select class="prod-input" id="ai-f-status"><option>Not Started</option><option>In Progress</option><option>Paused</option><option>Completed</option><option>Cancelled</option></select></div>
         <div class="prod-form-group"><label>Tags (comma-separated)</label><input class="prod-input" id="ai-f-tags" placeholder="e.g. urgent, ministry"/></div>
-        <div class="prod-form-group prod-fg-full"><label>Remarks</label><textarea class="prod-input prod-textarea" id="ai-f-remarks" placeholder="Any additional notes..."></textarea></div>
+        <div class="prod-form-group"><label>Repeat</label><select class="prod-input" id="ai-f-repeat"><option value="">None</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div>
+        <div class="prod-form-group" style="display:flex;align-items:center;gap:0.5rem;padding-top:1.1rem;">
+          <input type="checkbox" id="ai-f-pin" style="accent-color:#14b8a6;width:14px;height:14px;cursor:pointer;"/>
+          <label for="ai-f-pin" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;color:rgba(255,255,255,0.4);text-transform:uppercase;">Pin Task</label>
+        </div>
+        <div class="prod-form-group prod-fg-full"><label>Remarks / Notes</label><textarea class="prod-input prod-textarea" id="ai-f-remarks" placeholder="Any additional notes..."></textarea></div>
       </div>
     </div>
-    <div class="prod-modal-footer"><button class="prod-btn prod-btn-muted" id="ai-modal-cancel">Cancel</button><button class="prod-btn prod-btn-teal" id="ai-modal-save">Save Item</button></div>
+    <div class="prod-modal-footer"><button class="prod-btn prod-btn-muted" id="ai-modal-cancel">Cancel</button><button class="prod-btn prod-btn-amber" id="ai-modal-archive" style="display:none;">Archive</button><button class="prod-btn prod-btn-teal" id="ai-modal-save">Save Item</button></div>
   </div>
 </div>
 
@@ -2415,6 +2639,20 @@ renderBudget();
 .badge-high{background:rgba(244,63,94,0.12);color:#f43f5e;border:1px solid rgba(244,63,94,0.2);}
 .badge-medium{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);}
 .badge-low{background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2);}
+.badge-critical{background:rgba(244,63,94,0.18);color:#ff6b6b;border:1px solid rgba(244,63,94,0.35);font-weight:700;}
+.ai-item-pinned{border-top:2px solid #f59e0b !important;}
+.pin-icon{font-size:0.7rem;opacity:0.6;margin-left:auto;flex-shrink:0;}
+/* Toast notifications */
+#prod-toast-container{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:0.4rem;align-items:center;pointer-events:none;}
+.prod-toast{background:#1a2235;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:0.55rem 1.1rem;font-family:'DM Mono',monospace;font-size:0.7rem;color:rgba(255,255,255,0.85);box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:toastIn 0.25s ease;white-space:nowrap;pointer-events:all;}
+.prod-toast.toast-success{border-color:rgba(16,185,129,0.35);color:#10b981;}
+.prod-toast.toast-info{border-color:rgba(20,184,166,0.35);color:#14b8a6;}
+.prod-toast.toast-warn{border-color:rgba(245,158,11,0.35);color:#f59e0b;}
+.prod-toast.toast-error{border-color:rgba(244,63,94,0.35);color:#f43f5e;}
+.prod-toast.toast-undo{border-color:rgba(245,158,11,0.4);color:#fff;background:#1e2a1e;pointer-events:all;display:flex;gap:0.6rem;align-items:center;}
+.prod-toast-undo-btn{background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.3);border-radius:5px;color:#f59e0b;font-family:'DM Mono',monospace;font-size:0.62rem;padding:0.15rem 0.5rem;cursor:pointer;}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes toastOut{from{opacity:1;}to{opacity:0;transform:translateY(4px);}}
 .badge-cat{background:rgba(20,184,166,0.1);color:#14b8a6;border:1px solid rgba(20,184,166,0.2);}
 .badge-status{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1);}
 .badge-status.s-inprogress{color:#14b8a6;border-color:rgba(20,184,166,0.2);background:rgba(20,184,166,0.08);}
@@ -2505,6 +2743,22 @@ renderBudget();
 .prod-reports-controls{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;}
 .prod-export-btns{display:flex;gap:0.35rem;margin-left:auto;}
 .prod-report-output{display:flex;flex-direction:column;gap:1rem;}
+/* ── Enhanced Reports ── */
+.report-kpi-card{background:#111722;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:0.85rem 1rem;}
+.report-kpi-label{font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:0.3rem;}
+.report-kpi-value{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.1;}
+.report-kpi-sub{font-family:'DM Mono',monospace;font-size:0.56rem;color:rgba(255,255,255,0.25);margin-top:0.2rem;}
+.report-chart-card{background:#111722;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:1rem;flex:1;min-width:260px;}
+.report-chart-title{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:0.85rem;}
+.report-canvas-wrap{position:relative;width:100%;height:180px;}
+.report-canvas-wrap canvas{width:100%!important;height:100%!important;}
+/* Donut chart label */
+.report-donut-wrap{position:relative;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;}
+.report-donut-legend{display:flex;flex-direction:column;gap:0.35rem;flex:1;}
+.report-legend-item{display:flex;align-items:center;gap:0.45rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.55);}
+.report-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* No-data state */
+.report-empty-state{text-align:center;padding:4rem 1rem;font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(255,255,255,0.2);}
 .report-summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem;}
 .report-table-wrap{overflow-x:auto;}
 .report-table{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:0.68rem;}
@@ -2572,17 +2826,199 @@ function loadState(){
 function saveState(){try{localStorage.setItem(LS_PROD,JSON.stringify(state));}catch(e){console.warn('[Productivity] save error',e);}}
 function saveSettings(){try{localStorage.setItem(LS_SETTINGS,JSON.stringify(settings));}catch(e){}}
 
-/* ── AUTO BACKUP (rolling 10) ── */
+/* ══════════════════════════════════════════
+   BACKUP v2 — comprehensive, validated, merge/replace
+══════════════════════════════════════════ */
+
+const BACKUP_VERSION = '2.0';
+const BACKUP_MAX     = 10;
+let   _autoBackupEnabled = true;
+
+/* ── Build a full snapshot object ── */
+function _buildSnapshot(){
+  const snap = {
+    schemaVersion : BACKUP_VERSION,
+    exportedAt    : new Date().toISOString(),
+    appName       : 'HomeRepo Dashboard',
+    productivity  : JSON.parse(JSON.stringify(state)),
+    settings      : JSON.parse(JSON.stringify(settings)),
+    homeRepo      : {},
+    focusState    : {
+      mode             : focusState.mode,
+      totalSecs        : focusState.totalSecs,
+      elapsedAtPause   : focusState.elapsedAtPause,
+      running          : focusState.running,
+    },
+  };
+  // Read all known Dashboard LS keys read-only
+  ['hd_tasks_v1','hd_cal_url_v1','hd_budget_v1'].forEach(k=>{
+    try{ snap.homeRepo[k] = localStorage.getItem(k); }catch(e){}
+  });
+  // Capture any other homeRepo_ keys that might exist in future
+  try{
+    Object.keys(localStorage).filter(k=>k.startsWith('hd_')&&!snap.homeRepo[k]).forEach(k=>{
+      try{ snap.homeRepo[k] = localStorage.getItem(k); }catch(e){}
+    });
+  }catch(e){}
+  return snap;
+}
+
+/* ── Validate a parsed backup object ── */
+function _validateSnapshot(snap){
+  const errors = [];
+  if(!snap || typeof snap !== 'object')           errors.push('Not a valid JSON object.');
+  if(!snap.exportedAt)                            errors.push('Missing exportedAt timestamp.');
+  if(snap.productivity){
+    const prod = snap.productivity;
+    if(prod.actionItems  !== undefined && !Array.isArray(prod.actionItems))  errors.push('actionItems is not an array.');
+    if(prod.plannerItems !== undefined && !Array.isArray(prod.plannerItems)) errors.push('plannerItems is not an array.');
+    if(prod.notes        !== undefined && !Array.isArray(prod.notes))        errors.push('notes is not an array.');
+    if(prod.focusSessions!== undefined && !Array.isArray(prod.focusSessions))errors.push('focusSessions is not an array.');
+    // Check for obviously corrupted items
+    if(Array.isArray(prod.actionItems)){
+      const corrupt = prod.actionItems.filter(i=>!i||typeof i!=='object'||!i.id).length;
+      if(corrupt>0) errors.push(corrupt+' action item(s) missing required id field.');
+    }
+  }
+  return errors;
+}
+
+/* ── Safe recovery: strip corrupted entries, keep valid ones ── */
+function _safeRecover(arr, label){
+  if(!Array.isArray(arr)){
+    console.warn('[Productivity] '+label+' is not an array — skipping recovery.');
+    return [];
+  }
+  const good=[],bad=[];
+  arr.forEach(item=>{
+    if(item && typeof item==='object') good.push(item);
+    else bad.push(item);
+  });
+  if(bad.length>0) console.warn('[Productivity] Skipped '+bad.length+' corrupted '+label+' entries.');
+  return good;
+}
+
+/* ── Validate all state on startup — never deletes, only warns ── */
+function validateStateIntegrity(){
+  let repaired = false;
+  ['actionItems','plannerItems','notes','focusSessions'].forEach(key=>{
+    if(!Array.isArray(state[key])){
+      console.warn('[Productivity] '+key+' was not an array. Resetting to []. Data was: ', state[key]);
+      state[key] = [];
+      repaired = true;
+    } else {
+      const clean = _safeRecover(state[key], key);
+      if(clean.length !== state[key].length){
+        state[key] = clean;
+        repaired = true;
+      }
+    }
+  });
+  if(repaired){
+    console.warn('[Productivity] State repaired. Saving clean copy.');
+    try{ saveState(); }catch(e){ console.warn('[Productivity] Could not save repaired state',e); }
+    if(typeof prodToast==='function') prodToast('Data integrity check: minor issues repaired.','warn',4000);
+  }
+}
+
+/* ── AUTO BACKUP (rolling BACKUP_MAX, respects toggle) ── */
 function createBackup(){
+  if(!_autoBackupEnabled) return;
   try{
     let backups=[];
-    try{backups=JSON.parse(localStorage.getItem(LS_BACKUP)||'[]');}catch(e){}
-    const snap={timestamp:new Date().toISOString(),productivity:JSON.parse(JSON.stringify(state)),homeRepo:{}};
-    ['hd_tasks_v1','hd_cal_url_v1','hd_budget_v1'].forEach(k=>{try{snap.homeRepo[k]=localStorage.getItem(k);}catch(e){}});
+    try{ backups=JSON.parse(localStorage.getItem(LS_BACKUP)||'[]'); }catch(e){ backups=[]; }
+    if(!Array.isArray(backups)) backups=[];
+    const snap=_buildSnapshot();
+    snap._isAutoBackup=true;
     backups.unshift(snap);
-    if(backups.length>10)backups=backups.slice(0,10);
+    if(backups.length>BACKUP_MAX) backups=backups.slice(0,BACKUP_MAX);
     localStorage.setItem(LS_BACKUP,JSON.stringify(backups));
-  }catch(e){console.warn('[Productivity] auto-backup error',e);}
+  }catch(e){ console.warn('[Productivity] auto-backup error',e); }
+}
+
+/* ── Get stored auto-backups ── */
+function _getStoredBackups(){
+  try{ return JSON.parse(localStorage.getItem(LS_BACKUP)||'[]'); }catch(e){ return []; }
+}
+
+/* ── Merge restore ── */
+function _mergeRestore(snap){
+  if(snap.productivity){
+    ['actionItems','plannerItems','notes','focusSessions'].forEach(key=>{
+      if(!snap.productivity[key]) return;
+      const incoming = _safeRecover(snap.productivity[key], key);
+      const existing = new Map((state[key]||[]).map(x=>[x.id||JSON.stringify(x),x]));
+      incoming.forEach(item=>{
+        const k=item.id||JSON.stringify(item), ex=existing.get(k);
+        if(!ex||(item.updatedAt||0)>(ex.updatedAt||0)) existing.set(k,item);
+      });
+      state[key]=[...existing.values()];
+    });
+  }
+  if(snap.settings && typeof snap.settings==='object'){
+    Object.assign(settings, snap.settings);
+    saveSettings();
+  }
+  saveState();
+}
+
+/* ── Replace restore ── */
+function _replaceRestore(snap){
+  // Safety: create an auto-backup first before overwriting
+  createBackup();
+  if(snap.productivity){
+    ['actionItems','plannerItems','notes','focusSessions'].forEach(key=>{
+      if(snap.productivity[key]!==undefined){
+        state[key] = _safeRecover(snap.productivity[key], key);
+      }
+    });
+  }
+  if(snap.settings && typeof snap.settings==='object'){
+    Object.assign(settings, snap.settings);
+    saveSettings();
+  }
+  saveState();
+}
+
+/* ── Restore homeRepo keys ── */
+function _restoreHomeRepo(snap){
+  if(!snap.homeRepo) return;
+  const keys=Object.keys(snap.homeRepo).filter(k=>snap.homeRepo[k]!==null);
+  keys.forEach(k=>{ try{ localStorage.setItem(k,snap.homeRepo[k]); }catch(err){} });
+}
+
+/* ── Render backup history list in modal ── */
+function _renderBackupList(){
+  const container = document.getElementById('prod-backup-list');
+  if(!container) return;
+  const backups = _getStoredBackups();
+  if(!backups.length){
+    container.innerHTML='<div style="text-align:center;padding:1.5rem;font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.2);">No auto-backups yet. They are created every 10 minutes.</div>';
+    return;
+  }
+  container.innerHTML = backups.map((snap,idx)=>{
+    const dt   = snap.exportedAt||snap.timestamp||'Unknown date';
+    const label= new Date(dt).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const tasks= snap.productivity?.actionItems?.length||0;
+    const notes= snap.productivity?.notes?.length||0;
+    const plan = snap.productivity?.plannerItems?.length||0;
+    const isAuto = snap._isAutoBackup?'Auto':'Manual';
+    return `<div style="background:#0d1117;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:0.75rem 0.85rem;display:flex;align-items:center;gap:0.75rem;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:600;color:#fff;">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:rgba(255,255,255,0.3);margin-top:0.2rem;">${isAuto} &middot; ${tasks} tasks &middot; ${notes} notes &middot; ${plan} planner items</div>
+      </div>
+      <button class="prod-btn prod-btn-teal" data-backup-idx="${idx}" style="padding:0.3rem 0.65rem;font-size:0.6rem;">Restore</button>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('[data-backup-idx]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const snap=backups[parseInt(btn.dataset.backupIdx)];
+      document.getElementById('prod-backup-modal').classList.remove('open');
+      document.getElementById('prod-backup-modal').setAttribute('aria-hidden','true');
+      _openRestoreModal(snap);
+    });
+  });
 }
 
 /* ── CATEGORIES ── */
@@ -3150,6 +3586,138 @@ function scheduleNoteSave(){
 /* ══════════════════════════════════════════
    REPORTS
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   REPORTS — enhanced with full KPIs + canvas charts
+══════════════════════════════════════════ */
+
+/* ── Lightweight canvas chart helpers (pure browser, no library needed) ── */
+function _drawBarChart(canvas,labels,values,colors){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const PAD={top:12,right:10,bottom:36,left:42};
+  const cW=W-PAD.left-PAD.right,cH=H-PAD.top-PAD.bottom;
+  ctx.clearRect(0,0,W,H);
+  const max=Math.max(...values,1);
+  const n=labels.length;
+  const gap=Math.floor(cW/n);
+  const bar=Math.max(6,Math.floor(gap*0.55));
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=PAD.top+cH*(1-g/4);
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+cW,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText(Math.round(max*g/4),PAD.left-4,y+3);
+  }
+  values.forEach((v,i)=>{
+    const x=PAD.left+i*gap+(gap-bar)/2;
+    const h=Math.max(2,(v/max)*cH);
+    const y=PAD.top+cH-h;
+    ctx.fillStyle=colors[i%colors.length];
+    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,bar,h,3);ctx.fill();}
+    else{ctx.fillRect(x,y,bar,h);}
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='9px monospace';ctx.textAlign='center';
+    const lbl=labels[i].length>7?labels[i].slice(0,6)+'\u2026':labels[i];
+    ctx.fillText(lbl,x+bar/2,PAD.top+cH+14);
+    if(v>0){ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='bold 9px monospace';ctx.fillText(v,x+bar/2,y-3);}
+  });
+}
+
+function _drawLineChart(canvas,labels,values,color){
+  if(!canvas||!values.length)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const PAD={top:14,right:14,bottom:34,left:40};
+  const cW=W-PAD.left-PAD.right,cH=H-PAD.top-PAD.bottom;
+  ctx.clearRect(0,0,W,H);
+  const max=Math.max(...values,1);
+  const n=labels.length;
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=PAD.top+cH*(1-g/4);
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+cW,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText(Math.round(max*g/4),PAD.left-4,y+3);
+  }
+  if(n<2){
+    const x=PAD.left+cW/2,y=PAD.top+cH-(values[0]/max)*cH;
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    if(labels[0]){ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(labels[0],x,PAD.top+cH+14);}
+    return;
+  }
+  const pts=values.map((v,i)=>({x:PAD.left+i*(cW/(n-1)),y:PAD.top+cH-(v/max)*cH}));
+  const grad=ctx.createLinearGradient(0,PAD.top,0,PAD.top+cH);
+  grad.addColorStop(0,color+'55');grad.addColorStop(1,color+'00');
+  ctx.beginPath();ctx.moveTo(pts[0].x,PAD.top+cH);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x,PAD.top+cH);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  pts.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='9px monospace';ctx.textAlign='center';
+    ctx.fillText(labels[i]?labels[i].slice(-5):i,p.x,PAD.top+cH+14);
+  });
+}
+
+function _drawDonutChart(canvas,slices){
+  if(!canvas||!slices.length)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const cx=W/2,cy=H/2,R=Math.min(W,H)*0.38,r=R*0.55;
+  ctx.clearRect(0,0,W,H);
+  const total=slices.reduce((a,s)=>a+s.value,0)||1;
+  let angle=-Math.PI/2;
+  slices.forEach(s=>{
+    const sweep=2*Math.PI*(s.value/total);
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,angle,angle+sweep);ctx.closePath();
+    ctx.fillStyle=s.color;ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fillStyle='#111722';ctx.fill();
+    angle+=sweep;
+  });
+  ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+  ctx.fillText(total,cx,cy+2);
+  ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='9px monospace';ctx.fillText('total',cx,cy+14);
+}
+
+/* ── Date helpers ── */
+function _daysBetween(from,to){
+  const days=[],cur=new Date(from);cur.setHours(0,0,0,0);
+  const end=new Date(to);end.setHours(23,59,59,999);
+  while(cur<=end){days.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  return days;
+}
+
+/* ── KPI calculator ── */
+function _calcKPIs(items,focusSessions,from,to){
+  const completed=items.filter(i=>i.status==='Completed');
+  const inProg=items.filter(i=>i.status==='In Progress');
+  const durations=completed.filter(i=>i.actualDuration>0).map(i=>i.actualDuration);
+  const totalWork=durations.reduce((a,b)=>a+b,0);
+  const avgDur=durations.length?Math.round(totalWork/durations.length):0;
+  const longest=durations.length?Math.max(...durations):0;
+  const shortest=durations.length?Math.min(...durations):0;
+  const rate=items.length?Math.round(completed.length/items.length*100):0;
+  const fromStr=from.toISOString().slice(0,10),toStr=to.toISOString().slice(0,10);
+  const focusMins=(focusSessions||[]).filter(s=>s.date>=fromStr&&s.date<=toStr).reduce((a,s)=>a+s.mins,0);
+  const byDay={};
+  completed.forEach(i=>{const d=(i.finishDate||'').slice(0,10);if(d)byDay[d]=(byDay[d]||0)+1;});
+  const bestDay=Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  const catMap={},priMap={};
+  items.forEach(i=>{
+    if(i.category)catMap[i.category]=(catMap[i.category]||0)+1;
+    if(i.priority)priMap[i.priority]=(priMap[i.priority]||0)+1;
+  });
+  const topCat=Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
+  const topPri=Object.entries(priMap).sort((a,b)=>b[1]-a[1])[0];
+  return{total:items.length,completed:completed.length,inProg:inProg.length,rate,
+    totalWork,avgDur,longest,shortest,focusMins,
+    bestDay:bestDay?bestDay[0]:'—',topCat:topCat?topCat[0]:'—',topPri:topPri?topPri[0]:'—',
+    catMap,priMap,byDay};
+}
+
 function initReports(){
   $('report-range').addEventListener('change',()=>{
     const rcd=$('report-custom-dates');
@@ -3160,6 +3728,7 @@ function initReports(){
   $('report-export-json').addEventListener('click',()=>exportReport('json'));
   $('report-export-excel').addEventListener('click',()=>exportReport('excel'));
 }
+
 function getReportRange(){
   const range=$('report-range').value,now=new Date();
   let from,to;
@@ -3172,51 +3741,122 @@ function getReportRange(){
   else if(range==='custom'){from=new Date($('report-from').value||today());to=new Date($('report-to').value||today());to.setHours(23,59,59,999);}
   return{from,to};
 }
+
 function generateReport(){
   const{from,to}=getReportRange();
-  const items=state.actionItems.filter(i=>{const d=new Date(i.createdTimestamp||i.createdDate||0);return d>=from&&d<=to;});
+  const items=state.actionItems.filter(i=>{
+    const d=new Date(i.createdTimestamp||i.createdDate||0);return d>=from&&d<=to;
+  });
   reportCache=items;
-  const out=$('report-output');if(!out)return;
-  const completed=items.filter(i=>i.status==='Completed');
-  const durations=completed.filter(i=>i.actualDuration>0).map(i=>i.actualDuration);
-  const total=durations.reduce((a,b)=>a+b,0);
-  const statusMap={},catMap={};
-  items.forEach(i=>{statusMap[i.status]=(statusMap[i.status]||0)+1;if(i.category)catMap[i.category]=(catMap[i.category]||0)+1;});
-  const maxCount=Math.max(...Object.values(statusMap),1);
+  const out=$('report-output'),kpiGrid=$('report-kpi-grid'),chartsRow=$('report-charts-row');
+  if(!out)return;
+
+  const rangeLabel=$('report-range-label');
+  if(rangeLabel){
+    const fmtD=d=>d.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+    rangeLabel.textContent=fmtD(from)+(from.toDateString()===to.toDateString()?'':' \u2014 '+fmtD(to));
+  }
+
+  if(!items.length){
+    if(kpiGrid)kpiGrid.style.display='none';
+    if(chartsRow)chartsRow.style.display='none';
+    out.innerHTML='<div class="report-empty-state">\u{1F4CA} No tasks found for this period.<br><span style="font-size:0.6rem;margin-top:0.4rem;display:block;">Try a different date range or add tasks first.</span></div>';
+    return;
+  }
+
+  const kpi=_calcKPIs(items,state.focusSessions,from,to);
+  const CAT_COLORS=['#14b8a6','#a855f7','#f59e0b','#10b981','#3b82f6','#f43f5e','#ec4899','#8b5cf6'];
+  const PRI_COLORS={Critical:'#f43f5e',High:'#f59e0b',Medium:'#14b8a6',Low:'#10b981'};
+  const STATUS_COLORS={'Not Started':'rgba(255,255,255,0.25)','In Progress':'#14b8a6','Paused':'#f59e0b','Completed':'#10b981','Cancelled':'#f43f5e'};
+
+  // ── KPI grid ──
+  if(kpiGrid){
+    kpiGrid.style.display='grid';
+    const KPIS=[
+      {l:'Total Tasks',v:kpi.total,sub:'in range'},
+      {l:'Completed',v:kpi.completed,sub:'finished',c:'#10b981'},
+      {l:'In Progress',v:kpi.inProg,sub:'running',c:'#14b8a6'},
+      {l:'Completion Rate',v:kpi.rate+'%',sub:'of total',c:kpi.rate>=70?'#10b981':kpi.rate>=40?'#f59e0b':'#f43f5e'},
+      {l:'Total Focus',v:(kpi.focusMins||0)+'m',sub:'timer sessions',c:'#f59e0b'},
+      {l:'Total Work Time',v:kpi.totalWork?fmtDur(kpi.totalWork):'—',sub:'active duration'},
+      {l:'Avg Duration',v:kpi.avgDur?fmtDur(kpi.avgDur):'—',sub:'per completed task'},
+      {l:'Longest Task',v:kpi.longest?fmtDur(kpi.longest):'—',sub:'single task'},
+      {l:'Shortest Task',v:kpi.shortest&&kpi.shortest!==kpi.longest?fmtDur(kpi.shortest):'—',sub:'single task'},
+      {l:'Best Day',v:kpi.bestDay!=='—'?kpi.bestDay.slice(5):'—',sub:'most completions',c:'#a855f7'},
+      {l:'Top Category',v:kpi.topCat||'—',sub:'most used'},
+      {l:'Top Priority',v:kpi.topPri||'—',sub:'most assigned'},
+    ];
+    kpiGrid.innerHTML=KPIS.map(k=>`<div class="report-kpi-card"><div class="report-kpi-label">${escH(k.l)}</div><div class="report-kpi-value" style="${k.c?'color:'+k.c:''}">${escH(String(k.v))}</div><div class="report-kpi-sub">${escH(k.sub)}</div></div>`).join('');
+  }
+
+  // ── Trend data ──
+  const days=_daysBetween(from,to);
+  const byDayDone={},byDayFocus={};
+  items.filter(i=>i.status==='Completed').forEach(i=>{const d=(i.finishDate||'').slice(0,10);if(d)byDayDone[d]=(byDayDone[d]||0)+1;});
+  (state.focusSessions||[]).filter(s=>{const d=new Date(s.date);return d>=from&&d<=to;}).forEach(s=>{byDayFocus[s.date]=(byDayFocus[s.date]||0)+s.mins;});
+  const tL=days.map(d=>d.slice(5)),tDone=days.map(d=>byDayDone[d]||0),tFocus=days.map(d=>byDayFocus[d]||0);
+  const catEntries=Object.entries(kpi.catMap).sort((a,b)=>b[1]-a[1]);
+  const priEntries=Object.entries(kpi.priMap).sort((a,b)=>b[1]-a[1]);
+
+  // ── Canvas charts ──
+  if(chartsRow){
+    chartsRow.style.display='flex';
+    const DPR=window.devicePixelRatio||1;
+    const mkCanvas=(w,h)=>{const cv=document.createElement('canvas');cv.width=w*DPR;cv.height=h*DPR;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').scale(DPR,DPR);return cv;};
+    const priLegend=priEntries.map(([p,n],i)=>`<div class="report-legend-item"><span class="report-legend-dot" style="background:${PRI_COLORS[p]||CAT_COLORS[i%CAT_COLORS.length]}"></span>${escH(p)}: ${n}</div>`).join('');
+    chartsRow.innerHTML=`
+      <div class="report-chart-card" id="rcc-wrap-1"><div class="report-chart-title">Daily Completion Trend</div><div class="report-canvas-wrap" id="rcc-1"></div></div>
+      <div class="report-chart-card" id="rcc-wrap-2"><div class="report-chart-title">Focus Time Trend (min)</div><div class="report-canvas-wrap" id="rcc-2"></div></div>
+      <div class="report-chart-card" id="rcc-wrap-3"><div class="report-chart-title">Task Categories</div><div class="report-canvas-wrap" id="rcc-3"></div></div>
+      <div class="report-chart-card" id="rcc-wrap-4"><div class="report-chart-title">Priority Distribution</div><div class="report-donut-wrap"><div class="report-canvas-wrap" id="rcc-4" style="width:130px;height:130px;flex-shrink:0;"></div><div class="report-donut-legend">${priLegend}</div></div></div>`;
+    requestAnimationFrame(()=>{
+      const w1=$('rcc-1');if(w1){const cv=mkCanvas(w1.offsetWidth||300,160);w1.appendChild(cv);_drawLineChart(cv,tL,tDone,'#14b8a6');}
+      const w2=$('rcc-2');if(w2){const cv=mkCanvas(w2.offsetWidth||300,160);w2.appendChild(cv);_drawLineChart(cv,tL,tFocus,'#f59e0b');}
+      const w3=$('rcc-3');
+      if(w3&&catEntries.length){const cv=mkCanvas(w3.offsetWidth||300,160);w3.appendChild(cv);_drawBarChart(cv,catEntries.map(e=>e[0]),catEntries.map(e=>e[1]),CAT_COLORS);}
+      else if(w3)w3.innerHTML='<div style="padding:1rem;font-family:\'DM Mono\',monospace;font-size:0.62rem;color:rgba(255,255,255,0.2);text-align:center;">No category data.</div>';
+      const w4=$('rcc-4');if(w4&&priEntries.length){const cv=mkCanvas(130,130);w4.appendChild(cv);_drawDonutChart(cv,priEntries.map(([p,n],i)=>({label:p,value:n,color:PRI_COLORS[p]||CAT_COLORS[i%CAT_COLORS.length]})));}
+    });
+  }
+
+  // ── Status bars + full table ──
+  const statusMap={};items.forEach(i=>{statusMap[i.status]=(statusMap[i.status]||0)+1;});
+  const maxSt=Math.max(...Object.values(statusMap),1);
   out.innerHTML=`
-    <div class="report-summary-grid">
-      ${[
-        {l:'Total Items',v:items.length},
-        {l:'Completed',v:completed.length,c:'#10b981'},
-        {l:'In Progress',v:items.filter(i=>i.status==='In Progress').length,c:'#14b8a6'},
-        {l:'Total Work Time',v:total?fmtDur(total):'—'},
-        {l:'Avg Duration',v:durations.length?fmtDur(Math.round(total/durations.length)):'—'},
-      ].map(s=>`<div class="prod-stat-card"><div class="prod-stat-label">${s.l}</div><div class="prod-stat-value" style="${s.c?'color:'+s.c:''}">${s.v}</div></div>`).join('')}
-    </div>
     <div class="report-chart-bar-wrap">
-      <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.35);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;">By Status</div>
-      ${Object.entries(statusMap).map(([s,c])=>`<div class="report-chart-bar-row"><div class="report-chart-bar-label">${escH(s)}</div><div class="report-chart-bar-track"><div class="report-chart-bar-fill" style="width:${Math.round(c/maxCount*100)}%"></div></div><div class="report-chart-bar-val">${c}</div></div>`).join('')}
+      <div class="report-chart-title">By Status</div>
+      ${Object.entries(statusMap).map(([s,n])=>`<div class="report-chart-bar-row"><div class="report-chart-bar-label">${escH(s)}</div><div class="report-chart-bar-track"><div class="report-chart-bar-fill" data-target="${Math.round(n/maxSt*100)}" style="width:0%;background:${STATUS_COLORS[s]||'#14b8a6'}"></div></div><div class="report-chart-bar-val">${n}</div></div>`).join('')}
     </div>
-    ${Object.keys(catMap).length?`<div class="report-chart-bar-wrap">
-      <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.35);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;">By Category</div>
-      ${Object.entries(catMap).map(([c,n])=>`<div class="report-chart-bar-row"><div class="report-chart-bar-label">${escH(c)}</div><div class="report-chart-bar-track"><div class="report-chart-bar-fill" style="width:${Math.round(n/items.length*100)}%;background:linear-gradient(90deg,#a855f7,#c084fc)"></div></div><div class="report-chart-bar-val">${n}</div></div>`).join('')}
-    </div>`:''}
     <div class="report-table-wrap">
       <table class="report-table">
-        <thead><tr><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Start</th><th>Finish</th><th>Duration</th><th>Owner</th></tr></thead>
-        <tbody>${items.map(i=>`<tr><td>${escH(i.title)}</td><td>${escH(i.category||'—')}</td><td>${escH(i.priority||'—')}</td><td>${escH(i.status)}</td><td>${escH(i.startDate?(i.startDate+(i.startTime?' '+i.startTime:'')):'—')}</td><td>${escH(i.finishDate?(i.finishDate+(i.finishTime?' '+i.finishTime:'')):'—')}</td><td>${i.actualDuration?fmtDur(i.actualDuration):'—'}</td><td>${escH(i.owner||'—')}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Tags</th><th>Start</th><th>Finish</th><th>Est(min)</th><th>Duration</th><th>Owner</th></tr></thead>
+        <tbody>${items.map(i=>`<tr>
+          <td>${escH(i.title)}</td><td>${escH(i.category||'—')}</td>
+          <td><span class="ai-badge ${typeof _badgePri==='function'?_badgePri(i.priority):'badge-medium'}" style="display:inline-block">${escH(i.priority||'—')}</span></td>
+          <td>${escH(i.status)}</td><td>${escH(i.tags||'—')}</td>
+          <td>${escH(i.startDate?(i.startDate+(i.startTime?' '+i.startTime:'')):'—')}</td>
+          <td>${escH(i.finishDate?(i.finishDate+(i.finishTime?' '+i.finishTime:'')):'—')}</td>
+          <td>${i.estimatedDuration||'—'}</td>
+          <td>${i.actualDuration?fmtDur(i.actualDuration):i.actualDurationManual?i.actualDurationManual+'m':'—'}</td>
+          <td>${escH(i.owner||'—')}</td>
+        </tr>`).join('')}</tbody>
       </table>
     </div>`;
-  requestAnimationFrame(()=>{document.querySelectorAll('.report-chart-bar-fill').forEach(b=>{const w=b.style.width;b.style.width='0%';setTimeout(()=>b.style.width=w,50);});});
+
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+    out.querySelectorAll('.report-chart-bar-fill[data-target]').forEach(b=>{b.style.transition='width 0.6s ease';b.style.width=b.dataset.target+'%';});
+  });});
+  if(typeof prodToast==='function')prodToast('Report generated.','info',1800);
 }
+
 function exportReport(type){
   const items=reportCache.length?reportCache:state.actionItems;
-  if(!items.length){alert('No data to export.');return;}
+  if(!items.length){if(typeof prodToast==='function')prodToast('No data to export.','warn');return;}
   let content,filename,mime;
   if(type==='json'){content=JSON.stringify(items,null,2);filename='productivity_export_'+today()+'.json';mime='application/json';}
   else{
-    const headers=['ID','Title','Description','Category','Priority','Owner','Status','Tags','Created Date','Start Date','Start Time','Finish Date','Finish Time','Est Duration(min)','Actual Duration(sec)','Working Time(sec)','Paused Time(sec)','Remarks'];
-    const rows=items.map(i=>[i.id,i.title,i.description,i.category,i.priority,i.owner,i.status,i.tags,i.createdDate,i.startDate,i.startTime,i.finishDate,i.finishTime,i.estimatedDuration,i.actualDuration,i.workingTimeSecs,i.pausedTimeSecs,i.remarks].map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"'));
+    const headers=['ID','Title','Description','Category','Priority','Owner','Status','Tags','Pinned','Repeat','Created Date','Start Date','Start Time','Finish Date','Finish Time','Est Duration(min)','Actual Duration(sec)','Actual Duration Manual(min)','Working Time(sec)','Paused Time(sec)','Remarks'];
+    const rows=items.map(i=>[i.id,i.title,i.description,i.category,i.priority,i.owner,i.status,i.tags,i.pinned?'Yes':'No',i.repeat||'',i.createdDate,i.startDate,i.startTime,i.finishDate,i.finishTime,i.estimatedDuration,i.actualDuration,i.actualDurationManual||'',i.workingTimeSecs,i.pausedTimeSecs,i.remarks].map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"'));
     const bom=type==='excel'?'\uFEFF':'';
     content=bom+[headers,...rows].map(r=>r.join(',')).join('\r\n');
     filename='productivity_export_'+today()+(type==='excel'?'_excel':'')+'.csv';
@@ -3224,48 +3864,160 @@ function exportReport(type){
   }
   const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  if(typeof prodToast==='function')prodToast('Export downloaded.','success');
 }
 
 /* ══════════════════════════════════════════
    BACKUP & RESTORE
 ══════════════════════════════════════════ */
+/* ── Restore modal state ── */
+let _pendingRestoreSnap = null;
+
+function _openRestoreModal(snap){
+  _pendingRestoreSnap = snap;
+  const preview = document.getElementById('prod-restore-preview');
+  if(preview){
+    const dt    = snap.exportedAt||snap.timestamp||'Unknown';
+    const tasks = snap.productivity?.actionItems?.length||0;
+    const notes = snap.productivity?.notes?.length||0;
+    const plan  = snap.productivity?.plannerItems?.length||0;
+    const focus = snap.productivity?.focusSessions?.length||0;
+    const ver   = snap.schemaVersion||snap.version||'1.0';
+    const hrKeys= snap.homeRepo?Object.keys(snap.homeRepo).filter(k=>snap.homeRepo[k]!==null).length:0;
+    preview.innerHTML=
+      '<strong style="color:#fff;">Backup details</strong><br>'+
+      'Date: '+new Date(dt).toLocaleString('en-PH')+'<br>'+
+      'Schema version: '+ver+'<br>'+
+      'Action items: '+tasks+'<br>'+
+      'Planner items: '+plan+'<br>'+
+      'Notes: '+notes+'<br>'+
+      'Focus sessions: '+focus+'<br>'+
+      'Dashboard modules: '+hrKeys;
+  }
+  const hrRow = document.getElementById('prod-restore-homeRepo-row');
+  if(hrRow) hrRow.style.display = (snap.homeRepo&&Object.keys(snap.homeRepo).length)?'flex':'none';
+  const modal = document.getElementById('prod-restore-modal');
+  if(modal){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+}
+
+function _closeRestoreModal(){
+  _pendingRestoreSnap = null;
+  const modal = document.getElementById('prod-restore-modal');
+  if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+}
+
 function initBackupRestore(){
+  /* ── Manual backup download ── */
   $('prod-backup-btn').addEventListener('click',()=>{
-    const snap={exportedAt:new Date().toISOString(),version:'1.0',productivity:JSON.parse(JSON.stringify(state)),homeRepo:{}};
-    ['hd_tasks_v1','hd_cal_url_v1','hd_budget_v1'].forEach(k=>{try{snap.homeRepo[k]=localStorage.getItem(k);}catch(e){}});
-    const blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='homeRepo_backup_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const snap = _buildSnapshot();
+    snap._isAutoBackup = false;
+    const blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;
+    a.download='homeRepo_backup_'+today()+'_'+new Date().toTimeString().slice(0,5).replace(':','')+'.json';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    // Also push to rolling auto-backup store
+    try{
+      let backups=_getStoredBackups();
+      backups.unshift(snap);
+      if(backups.length>BACKUP_MAX) backups=backups.slice(0,BACKUP_MAX);
+      localStorage.setItem(LS_BACKUP,JSON.stringify(backups));
+    }catch(e){}
   });
+
+  /* ── Restore from file ── */
   $('prod-restore-btn').addEventListener('click',()=>$('prod-restore-file').click());
   $('prod-restore-file').addEventListener('change',e=>{
-    const file=e.target.files[0];if(!file)return;
+    const file=e.target.files[0]; if(!file)return;
     const reader=new FileReader();
     reader.onload=ev=>{
-      try{
-        const snap=JSON.parse(ev.target.result);
-        if(snap.productivity){
-          ['actionItems','plannerItems','notes','focusSessions'].forEach(key=>{
-            if(!snap.productivity[key])return;
-            const existing=new Map((state[key]||[]).map(x=>[x.id||JSON.stringify(x),x]));
-            snap.productivity[key].forEach(item=>{
-              const k=item.id||JSON.stringify(item),ex=existing.get(k);
-              if(!ex||(item.updatedAt||0)>(ex.updatedAt||0))existing.set(k,item);
-            });
-            state[key]=[...existing.values()];
-          });
-          saveState();
-        }
-        if(snap.homeRepo){
-          const keys=Object.keys(snap.homeRepo).filter(k=>snap.homeRepo[k]!==null);
-          if(keys.length&&confirm('Also restore '+keys.length+' HomeRepo modules (tasks, budget, calendar)?')){
-            keys.forEach(k=>{try{localStorage.setItem(k,snap.homeRepo[k]);}catch(err){}});
-          }
-        }
-        alert('Restore complete! Reloading...');location.reload();
-      }catch(err){alert('Invalid backup file.');console.warn(err);}
+      let snap;
+      // 1. Parse JSON
+      try{ snap=JSON.parse(ev.target.result); }
+      catch(err){
+        if(typeof prodToast==='function') prodToast('Invalid file: not valid JSON.','error',5000);
+        console.warn('[Productivity] Restore parse error',err);
+        e.target.value=''; return;
+      }
+      // 2. Validate
+      const errors = _validateSnapshot(snap);
+      if(errors.length){
+        if(typeof prodToast==='function') prodToast('Backup validation failed: '+errors[0],'error',6000);
+        console.warn('[Productivity] Backup validation errors:',errors);
+        e.target.value=''; return;
+      }
+      // 3. Open restore modal
+      _openRestoreModal(snap);
+      e.target.value='';
     };
-    reader.readAsText(file);e.target.value='';
+    reader.readAsText(file);
   });
+
+  /* ── Restore modal: confirm button ── */
+  const confirmBtn = document.getElementById('prod-restore-modal-confirm');
+  if(confirmBtn) confirmBtn.addEventListener('click',()=>{
+    const snap = _pendingRestoreSnap;
+    if(!snap){ _closeRestoreModal(); return; }
+    const mode = (document.getElementById('restore-mode-replace')||{}).checked ? 'replace' : 'merge';
+    const restoreHR = (document.getElementById('prod-restore-homeRepo')||{}).checked;
+
+    if(mode==='replace'){
+      // Extra confirmation for destructive action
+      if(!window.confirm('Replace ALL current data with backup?
+
+A safety backup will be created first. This cannot be undone.')){
+        return;
+      }
+      _replaceRestore(snap);
+    } else {
+      _mergeRestore(snap);
+    }
+    if(restoreHR && snap.homeRepo) _restoreHomeRepo(snap);
+    _closeRestoreModal();
+    if(typeof prodToast==='function') prodToast('Restore complete! Reloading…','success',2000);
+    setTimeout(()=>location.reload(), 1800);
+  });
+
+  /* ── Restore modal: cancel buttons ── */
+  ['prod-restore-modal-cancel','prod-restore-modal-close'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('click',_closeRestoreModal);
+  });
+  const rm=document.getElementById('prod-restore-modal');
+  if(rm) rm.addEventListener('click',e=>{ if(e.target===rm) _closeRestoreModal(); });
+
+  /* ── View Backups button ── */
+  const vbBtn = document.getElementById('prod-view-backups-btn');
+  if(vbBtn) vbBtn.addEventListener('click',()=>{
+    _renderBackupList();
+    const modal=document.getElementById('prod-backup-modal');
+    if(modal){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+  });
+
+  /* ── Backup history modal close ── */
+  ['prod-backup-modal-close','prod-backup-modal-close2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('click',()=>{
+      const modal=document.getElementById('prod-backup-modal');
+      if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+    });
+  });
+  const bm=document.getElementById('prod-backup-modal');
+  if(bm) bm.addEventListener('click',e=>{ if(e.target===bm){ bm.classList.remove('open'); bm.setAttribute('aria-hidden','true'); } });
+
+  /* ── Auto-backup toggle ── */
+  const toggle = document.getElementById('prod-autobackup-toggle');
+  if(toggle){
+    // Restore preference
+    try{ _autoBackupEnabled = localStorage.getItem('homeRepo_autobackup')!=='false'; }catch(e){}
+    toggle.checked = _autoBackupEnabled;
+    toggle.addEventListener('change',()=>{
+      _autoBackupEnabled = toggle.checked;
+      try{ localStorage.setItem('homeRepo_autobackup', _autoBackupEnabled?'true':'false'); }catch(e){}
+      if(typeof prodToast==='function') prodToast('Auto-backup '+(toggle.checked?'enabled':'disabled')+'.', toggle.checked?'success':'warn', 2000);
+    });
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -3273,6 +4025,7 @@ function initBackupRestore(){
 ══════════════════════════════════════════ */
 function init(){
   loadState();
+  validateStateIntegrity();
   initNav();
   initModal();
   initActionItemFilters();
@@ -3284,8 +4037,11 @@ function init(){
   initBackupRestore();
   setInterval(createBackup,10*60*1000);
   renderDashboard();
-  // Initial planner → dashboard sync (additive)
+  // Initial planner → dashboard sync + Today's Focus helpers
   syncPlannerToRoutine();
+  _initTodaysFocusQuickAdd();
+  _initOpenPlannerBtn();
+  _initExtendedFeatures();
   console.info('[Productivity Center] loaded. Keys: homeRepo_productivity, homeRepo_productivity_settings, homeRepo_productivity_backup');
 }
 
@@ -3300,83 +4056,630 @@ else{setTimeout(init,0);}
    Existing task-list, hd_tasks_v1, renderTasks() untouched.
 ══════════════════════════════════════════ */
 
+/* ── TODAY'S FOCUS — period helper ── */
 function getPlannerPeriod(){
-  const h=new Date().getHours();
-  if(h>=5  && h<12) return 'Morning';
-  if(h>=12 && h<18) return 'Afternoon';
+  const h = new Date().getHours();
+  if(h >= 5  && h < 12) return 'Morning';
+  if(h >= 12 && h < 18) return 'Afternoon';
   return 'Evening';
 }
 
-function syncPlannerToRoutine(){
-  const periodEl  = document.getElementById('routine-period-name');
-  const listEl    = document.getElementById('routine-planner-list');
-  if(!periodEl || !listEl) return;
+function getPlannerPeriodSubtitle(period){
+  return { Morning:'Focus', Afternoon:'Priorities', Evening:'Wrap-up' }[period] || '';
+}
 
-  const period    = getPlannerPeriod();
-  const todayKey  = 'planner_' + today();
-  const items     = state.plannerItems.filter(
-    i => i.dateKey === todayKey && i.period === period
-  );
+/* ── ACTIVE TASK TIMER for Today's Focus ── */
+let _tfTimerRaf = null;
+function _tfStartActiveTimer(item){
+  if(_tfTimerRaf){ cancelAnimationFrame(_tfTimerRaf); _tfTimerRaf = null; }
+  if(!item || !item.startTimestamp) return;
+  function tick(){
+    const now = Date.now(), paused = item.totalPausedMs || 0;
+    const elapsed = item.status === 'Paused' && item.pausedAt
+      ? Math.floor((item.pausedAt - item.startTimestamp - paused) / 1000)
+      : Math.floor((now - item.startTimestamp - paused) / 1000);
+    const el = document.getElementById('tf-active-timer');
+    if(el) el.textContent = (function(s){
+      const h=String(Math.floor(s/3600)).padStart(2,'0'),
+            m=String(Math.floor((s%3600)/60)).padStart(2,'0'),
+            sec=String(s%60).padStart(2,'0');
+      return h+':'+m+':'+sec;
+    })(Math.max(0, elapsed));
+    if(item.status === 'In Progress') _tfTimerRaf = requestAnimationFrame(tick);
+  }
+  _tfTimerRaf = requestAnimationFrame(tick);
+}
+
+/* ── MAIN SYNC FUNCTION ── */
+function syncPlannerToRoutine(){
+  const periodNameEl  = document.getElementById('routine-period-name');
+  const periodTitleEl = document.getElementById('routine-period-title');
+  const listEl        = document.getElementById('routine-planner-list');
+  const progressFill  = document.getElementById('tf-progress-fill');
+  const progressLabel = document.getElementById('tf-progress-label');
+  const activeBanner  = document.getElementById('tf-active-task');
+  const activeTitle   = document.getElementById('tf-active-title');
+  if(!periodNameEl || !listEl) return;
+
+  const period   = getPlannerPeriod();
+  const subtitle = getPlannerPeriodSubtitle(period);
+  const todayKey = 'planner_' + today();
 
   // Update period label
-  periodEl.textContent = period;
+  periodNameEl.textContent  = period;
+  if(periodTitleEl) periodTitleEl.textContent = subtitle;
 
-  // Separate remaining vs completed for display ordering
-  const remaining  = items.filter(i => !i.done);
-  const completed  = items.filter(i => i.done);
-  const ordered    = [...remaining, ...completed];
+  // Filter today + period items from planner (no copy — read only)
+  const items     = (state.plannerItems || []).filter(
+    i => i.dateKey === todayKey && i.period === period
+  );
+  const done      = items.filter(i => i.done).length;
+  const total     = items.length;
+  const pct       = total ? Math.round(done / total * 100) : 0;
+
+  // Update progress
+  if(progressFill)  progressFill.style.width  = pct + '%';
+  if(progressLabel) progressLabel.textContent  = done + ' / ' + total;
+
+  // Active task from Action Items (In Progress)
+  const activeItem = (state.actionItems || []).find(i => i.status === 'In Progress');
+  if(activeBanner && activeTitle){
+    if(activeItem){
+      activeBanner.style.display = 'block';
+      activeTitle.textContent    = activeItem.title || '—';
+      _tfStartActiveTimer(activeItem);
+    } else {
+      activeBanner.style.display = 'none';
+      if(_tfTimerRaf){ cancelAnimationFrame(_tfTimerRaf); _tfTimerRaf = null; }
+    }
+  }
+
+  // Build task list — remaining first, completed below
+  const remaining = items.filter(i => !i.done);
+  const completed = items.filter(i => i.done);
+  const ordered   = [...remaining, ...completed];
 
   if(!ordered.length){
-    listEl.innerHTML = '<div class="routine-planner-empty">No scheduled tasks for this period.</div>';
+    listEl.innerHTML = [
+      '<div class="routine-planner-empty">',
+      '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" style="opacity:0.25;margin-bottom:0.4rem">',
+      '<rect x="1" y="3" width="20" height="18" rx="3" stroke="currentColor" stroke-width="1.3"/>',
+      '<path d="M7 1v4M15 1v4M1 9h20" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>',
+      '</svg>',
+      '<div>No tasks for <strong>' + period + '</strong>.</div>',
+      '<div style="font-size:0.6rem;margin-top:0.2rem;opacity:0.6;">Open the Daily Planner to add one.</div>',
+      '</div>'
+    ].join('');
     return;
   }
 
   const checkSVG = '<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.2 5.5L8 1" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   listEl.innerHTML = ordered.map(p => `
-    <div class="routine-planner-item${p.done?' done':''}" data-sync-pid="${p.id}">
+    <div class="routine-planner-item${p.done ? ' done' : ''}" data-sync-pid="${p.id}">
       <div class="routine-planner-check">${p.done ? checkSVG : ''}</div>
       <span class="routine-planner-label">${escH(p.label)}</span>
     </div>`).join('');
 
-  // Wire up toggle — updates plannerItems directly, then re-syncs both views
+  // Wire toggle — reads/writes plannerItems directly, no copy
   listEl.querySelectorAll('.routine-planner-item').forEach(row => {
     row.addEventListener('click', () => {
       const pid = row.dataset.syncPid;
-      const p   = state.plannerItems.find(x => x.id === pid);
+      const p   = (state.plannerItems || []).find(x => x.id === pid);
       if(!p) return;
       p.done = !p.done;
       saveState();
-      syncPlannerToRoutine();   // update dashboard immediately
-      // If planner view is currently open, keep it in sync too
-      const plannerView = document.getElementById('view-planner');
-      if(plannerView && plannerView.classList.contains('active')) renderPlanner();
+      syncPlannerToRoutine();
+      // Keep planner view in sync if open
+      const pv = document.getElementById('view-planner');
+      if(pv && pv.classList.contains('active')) renderPlanner();
     });
   });
 }
 
-/* Wrap renderPlanner so every planner change also updates the dashboard */
+/* ── QUICK-ADD to planner from dashboard ── */
+function _initTodaysFocusQuickAdd(){
+  const input = document.getElementById('tf-quickadd-input');
+  const btn   = document.getElementById('tf-quickadd-btn');
+  if(!input || !btn) return;
+  const doAdd = () => {
+    const label = input.value.trim();
+    if(!label) return;
+    const period  = getPlannerPeriod();
+    const dateKey = 'planner_' + today();
+    state.plannerItems.push({
+      id        : 'p' + Date.now() + Math.random().toString(36).slice(2,6),
+      label,
+      period,
+      dateKey,
+      done      : false,
+      createdAt : Date.now()
+    });
+    saveState();
+    syncPlannerToRoutine();
+    // Refresh planner view if open
+    const pv = document.getElementById('view-planner');
+    if(pv && pv.classList.contains('active')) renderPlanner();
+    input.value = '';
+    input.focus();
+  };
+  btn.addEventListener('click', doAdd);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') doAdd(); });
+}
+
+/* ── OPEN PLANNER button ── */
+function _initOpenPlannerBtn(){
+  const btn = document.getElementById('routine-open-planner-btn');
+  if(!btn) return;
+  btn.addEventListener('click', () => {
+    const overlay = document.getElementById('prod-overlay');
+    if(overlay){ overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); }
+    // Switch to planner view
+    document.querySelectorAll('.prod-nav-btn').forEach(b => b.classList.remove('active'));
+    const plannerBtn = document.querySelector('.prod-nav-btn[data-view="planner"]');
+    if(plannerBtn) plannerBtn.classList.add('active');
+    document.querySelectorAll('.prod-view').forEach(v => v.classList.remove('active'));
+    const plannerView = document.getElementById('view-planner');
+    if(plannerView){ plannerView.classList.add('active'); renderPlanner(); }
+  });
+}
+
+/* ══════════════════════════════════════════
+   TOAST NOTIFICATION ENGINE (replaces alert dialogs)
+══════════════════════════════════════════ */
+(function(){
+  const container = document.createElement('div');
+  container.id = 'prod-toast-container';
+  document.body.appendChild(container);
+})();
+
+function prodToast(msg, type, duration){
+  type = type||'info'; duration = duration||2800;
+  const tc = document.getElementById('prod-toast-container');
+  if(!tc) return;
+  const t = document.createElement('div');
+  t.className = 'prod-toast toast-'+type;
+  t.textContent = msg;
+  tc.appendChild(t);
+  const remove = ()=>{ t.style.animation='toastOut 0.2s ease forwards'; setTimeout(()=>t.remove(),220); };
+  const timer  = setTimeout(remove, duration);
+  t.addEventListener('click', ()=>{ clearTimeout(timer); remove(); });
+}
+
+/* ══════════════════════════════════════════
+   UNDO DELETE — 30-second window
+══════════════════════════════════════════ */
+let _undoStack = [];   // [{item, timer}]
+
+function _pushUndo(item){
+  const entry = {
+    item: JSON.parse(JSON.stringify(item)),
+    timer: setTimeout(()=>{ _undoStack = _undoStack.filter(e=>e!==entry); }, 30000)
+  };
+  _undoStack.push(entry);
+
+  const tc = document.getElementById('prod-toast-container');
+  if(!tc) return;
+  const t = document.createElement('div');
+  t.className = 'prod-toast toast-undo';
+  t.innerHTML = '<span>Task deleted.</span><button class="prod-toast-undo-btn">Undo</button>';
+  tc.appendChild(t);
+  const undoBtn = t.querySelector('.prod-toast-undo-btn');
+  const removeToast = ()=>{ t.style.animation='toastOut 0.2s ease forwards'; setTimeout(()=>t.remove(),220); };
+  const autoTimer = setTimeout(removeToast, 5000);
+  undoBtn.addEventListener('click', ()=>{
+    clearTimeout(autoTimer); clearTimeout(entry.timer);
+    _undoStack = _undoStack.filter(e=>e!==entry);
+    state.actionItems.unshift(entry.item);
+    saveState(); renderActionItems(); renderCurrentTaskBanner();
+    prodToast('Task restored.','success');
+    removeToast();
+  });
+}
+
+/* ══════════════════════════════════════════
+   PRIORITY ORDER — extended with Critical
+══════════════════════════════════════════ */
+const PORD_EXT = {Critical:0, High:1, Medium:2, Low:3};
+function _badgePri(pri){
+  const p=(pri||'medium').toLowerCase();
+  return p==='critical'?'badge-critical':'badge-'+p;
+}
+
+/* ══════════════════════════════════════════
+   CATEGORY DROPDOWN — Custom toggle
+══════════════════════════════════════════ */
+function _initCategoryToggle(){
+  const sel = document.getElementById('ai-f-cat');
+  const wrap= document.getElementById('ai-f-cat-custom-wrap');
+  if(!sel||!wrap) return;
+  sel.addEventListener('change', ()=>{
+    wrap.style.display = sel.value==='__custom__' ? 'flex' : 'none';
+  });
+}
+
+function _getModalCategory(){
+  const sel = document.getElementById('ai-f-cat');
+  if(!sel) return '';
+  if(sel.value==='__custom__'){
+    return (document.getElementById('ai-f-cat-custom')||{}).value?.trim()||'';
+  }
+  return sel.value==='— Select —' ? '' : sel.value;
+}
+
+function _setModalCategory(cat){
+  const sel = document.getElementById('ai-f-cat');
+  const wrap= document.getElementById('ai-f-cat-custom-wrap');
+  const customInp = document.getElementById('ai-f-cat-custom');
+  if(!sel) return;
+  const opts = Array.from(sel.options).map(o=>o.value);
+  if(!cat){ sel.value=''; return; }
+  if(opts.includes(cat)){ sel.value=cat; if(wrap) wrap.style.display='none'; }
+  else {
+    sel.value='__custom__';
+    if(wrap) wrap.style.display='flex';
+    if(customInp) customInp.value=cat;
+  }
+}
+
+/* ══════════════════════════════════════════
+   PIN TASK
+══════════════════════════════════════════ */
+function _togglePin(item){
+  item.pinned = !item.pinned;
+  saveState(); renderActionItems();
+  prodToast(item.pinned?'Task pinned.':'Task unpinned.','info');
+}
+
+/* ══════════════════════════════════════════
+   ARCHIVE / RESTORE
+══════════════════════════════════════════ */
+function _archiveItem(item){
+  item.archived  = true;
+  item.archivedAt= Date.now();
+  saveState(); renderActionItems(); renderArchivedItems();
+  prodToast('Task archived.','warn');
+}
+
+function _restoreItem(item){
+  item.archived   = false;
+  item.archivedAt = null;
+  saveState(); renderActionItems(); renderArchivedItems();
+  prodToast('Task restored from archive.','success');
+}
+
+function renderArchivedItems(){
+  const list = document.getElementById('ai-archived-list');
+  if(!list) return;
+  const items = state.actionItems.filter(i=>i.archived);
+  if(!items.length){ list.innerHTML='<div style="text-align:center;padding:1.5rem;font-family:\'DM Mono\',monospace;font-size:0.68rem;color:rgba(255,255,255,0.2);">No archived tasks.</div>'; return; }
+  list.innerHTML = items.map(item=>`
+    <div class="ai-item" style="opacity:0.6;" data-id="${item.id}">
+      <div class="ai-item-main">
+        <div class="ai-item-title">${escH(item.title)}</div>
+        <div class="ai-item-meta">
+          ${item.category?`<span class="ai-badge badge-cat">${escH(item.category)}</span>`:''}
+          <span class="ai-badge ${_badgePri(item.priority)}">${escH(item.priority||'Medium')}</span>
+        </div>
+      </div>
+      <div class="ai-item-actions">
+        <button class="ai-act-btn" data-action="restore-archive" data-id="${item.id}">&#x21A9; Restore</button>
+        <button class="ai-act-btn danger" data-action="delete-archive" data-id="${item.id}">&#x1F5D1;</button>
+      </div>
+    </div>`).join('');
+  list.querySelectorAll('[data-action]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const item = state.actionItems.find(i=>i.id===btn.dataset.id);
+      if(!item) return;
+      if(btn.dataset.action==='restore-archive') _restoreItem(item);
+      else if(btn.dataset.action==='delete-archive'){
+        state.actionItems = state.actionItems.filter(i=>i.id!==item.id);
+        saveState(); renderArchivedItems();
+        prodToast('Task permanently deleted.','error');
+      }
+    });
+  });
+}
+
+/* ══════════════════════════════════════════
+   REPEAT TASK
+══════════════════════════════════════════ */
+function _scheduleRepeat(item){
+  if(!item.repeat||item.status!=='Completed') return;
+  const freq=item.repeat;
+  const base=item.finishDate?new Date(item.finishDate):new Date();
+  const next=new Date(base);
+  if(freq==='daily')   next.setDate(next.getDate()+1);
+  if(freq==='weekly')  next.setDate(next.getDate()+7);
+  if(freq==='monthly') next.setMonth(next.getMonth()+1);
+  if(freq==='yearly')  next.setFullYear(next.getFullYear()+1);
+  const copy=JSON.parse(JSON.stringify(item));
+  copy.id=uid();copy.status='Not Started';
+  copy.startTimestamp=null;copy.startDate='';copy.startTime='';
+  copy.finishTimestamp=null;copy.finishDate='';copy.finishTime='';
+  copy.actualDuration=0;copy.workingTimeSecs=0;copy.pausedTimeSecs=0;
+  copy.totalPausedMs=0;copy.pausedAt=null;copy.archived=false;
+  copy.createdTimestamp=Date.now();copy.createdDate=today();
+  copy.title=item.title;  // keep same title
+  const ds=next.toISOString().slice(0,10);
+  copy.startDate=ds;
+  state.actionItems.unshift(copy);
+  prodToast('Repeat task created for '+ds,'info',4000);
+}
+
+/* ══════════════════════════════════════════
+   GLOBAL SEARCH
+══════════════════════════════════════════ */
+function _initGlobalSearch(){
+  const gs = document.getElementById('ai-global-search');
+  if(!gs) return;
+  gs.addEventListener('input', ()=>{
+    const q = gs.value.toLowerCase().trim();
+    const search = document.getElementById('ai-search');
+    if(search) search.value = q;
+    renderActionItems();
+  });
+}
+
+/* ══════════════════════════════════════════
+   PATCH: extend getFilteredItems to use global search + Critical priority + pinned first + archived exclusion
+══════════════════════════════════════════ */
+const _origGetFilteredItems = getFilteredItems;
+getFilteredItems = function(){
+  let items = state.actionItems.filter(i=>!i.archived);
+  const search = (document.getElementById('ai-search')||{}).value||'';
+  const gs     = (document.getElementById('ai-global-search')||{}).value||'';
+  const q      = (gs||search).toLowerCase().trim();
+  const cat    = (document.getElementById('ai-filter-cat')||{}).value||'';
+  const pri    = (document.getElementById('ai-filter-pri')||{}).value||'';
+  const status = (document.getElementById('ai-filter-status')||{}).value||'';
+  const sort   = (document.getElementById('ai-sort')||{}).value||'newest';
+
+  if(q) items = items.filter(i=>(
+    (i.title||'').toLowerCase().includes(q)||
+    (i.category||'').toLowerCase().includes(q)||
+    (i.tags||'').toLowerCase().includes(q)||
+    (i.description||'').toLowerCase().includes(q)||
+    (i.remarks||'').toLowerCase().includes(q)||
+    (i.status||'').toLowerCase().includes(q)
+  ));
+  if(cat)    items=items.filter(i=>i.category===cat);
+  if(pri)    items=items.filter(i=>i.priority===pri);
+  if(status) items=items.filter(i=>i.status===status);
+
+  items.sort((a,b)=>{
+    // Pinned always first
+    if(a.pinned&&!b.pinned) return -1;
+    if(!a.pinned&&b.pinned) return 1;
+    if(sort==='newest')   return (b.createdTimestamp||0)-(a.createdTimestamp||0);
+    if(sort==='oldest')   return (a.createdTimestamp||0)-(b.createdTimestamp||0);
+    if(sort==='priority') return (PORD_EXT[a.priority]||2)-(PORD_EXT[b.priority]||2);
+    if(sort==='alpha')    return (a.title||'').localeCompare(b.title||'');
+    if(sort==='duration') return (b.actualDuration||0)-(a.actualDuration||0);
+    return 0;
+  });
+  return items;
+};
+
+/* ══════════════════════════════════════════
+   PATCH: extend renderActionItems — add pin badge, Critical badge color
+══════════════════════════════════════════ */
+const _origRenderActionItems = renderActionItems;
+renderActionItems = function(){
+  _origRenderActionItems.apply(this,arguments);
+  // Enhance items with pin indicator and Critical colour
+  const list = document.getElementById('ai-list');
+  if(!list) return;
+  // Re-render with extended badges (we override HTML per item)
+  const items = getFilteredItems();
+  if(!items.length) return;  // empty state already rendered
+  list.innerHTML = items.map(item=>{
+    const sc  = ITEM_CLS(item.status), stc = STAT_CLS(item.status);
+    const canStart   = item.status==='Not Started';
+    const canPause   = item.status==='In Progress';
+    const canResume  = item.status==='Paused';
+    const canFinish  = ['In Progress','Paused'].includes(item.status);
+    const canCancel  = !['Completed','Cancelled'].includes(item.status);
+    const dur = item.actualDuration?` &middot; ${fmtDur(item.actualDuration)}`:'';
+    const est = item.estimatedDuration?` &middot; Est: ${item.estimatedDuration}m`:'';
+    const actDur = item.actualDurationManual?` &middot; Actual: ${item.actualDurationManual}m`:'';
+    const pinClass = item.pinned?' ai-item-pinned':'';
+    const repeatBadge = item.repeat?`<span class="ai-badge badge-status">&#x21BA; ${item.repeat}</span>`:'';
+    return `<div class="ai-item ${sc}${pinClass}" data-id="${item.id}">
+      <div class="ai-item-main">
+        <div class="ai-item-title">${item.pinned?'&#x1F4CC; ':''} ${escH(item.title)}</div>
+        <div class="ai-item-meta">
+          ${item.category?`<span class="ai-badge badge-cat">${escH(item.category)}</span>`:''}
+          <span class="ai-badge ${_badgePri(item.priority)}">${escH(item.priority||'Medium')}</span>
+          <span class="ai-badge badge-status ${stc}">${escH(item.status)}</span>
+          ${repeatBadge}
+          ${item.tags?item.tags.split(',').filter(t=>t.trim()).map(t=>`<span class="ai-badge badge-status">${escH(t.trim())}</span>`).join(''):''}
+        </div>
+        <div class="ai-item-timer">${item.startDate?'Started: '+escH(item.startDate+(item.startTime?' '+item.startTime:'')):'Created: '+escH(item.createdDate||'')}${dur}${est}${actDur}</div>
+        ${item.description?`<div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.3);margin-top:0.3rem;">${escH(item.description.slice(0,120))}${item.description.length>120?'...':''}</div>`:''}
+      </div>
+      <div class="ai-item-actions">
+        ${canStart?`<button class="ai-act-btn" data-action="start" data-id="${item.id}">&#9654; Start</button>`:''}
+        ${canPause?`<button class="ai-act-btn" data-action="pause" data-id="${item.id}">&#9208; Pause</button>`:''}
+        ${canResume?`<button class="ai-act-btn" data-action="resume" data-id="${item.id}">&#9654; Resume</button>`:''}
+        ${canFinish?`<button class="ai-act-btn" data-action="finish" data-id="${item.id}">&#10003; Finish</button>`:''}
+        <button class="ai-act-btn" data-action="pin" data-id="${item.id}">${item.pinned?'&#x1F4CC; Unpin':'&#x1F4CC; Pin'}</button>
+        <button class="ai-act-btn" data-action="edit" data-id="${item.id}">&#x270E; Edit</button>
+        <button class="ai-act-btn" data-action="duplicate" data-id="${item.id}">&#x29C9; Dup</button>
+        <button class="ai-act-btn danger" data-action="archive" data-id="${item.id}">&#x1F5C4; Archive</button>
+        ${canCancel?`<button class="ai-act-btn danger" data-action="cancel" data-id="${item.id}">&#x2715; Cancel</button>`:''}
+        <button class="ai-act-btn danger" data-action="delete" data-id="${item.id}">&#x1F5D1;</button>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-action]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const item=state.actionItems.find(i=>i.id===btn.dataset.id);
+      if(item) _extHandleItemAction(item,btn.dataset.action);
+    });
+  });
+};
+
+/* ══════════════════════════════════════════
+   EXTENDED ACTION HANDLER — wraps existing
+══════════════════════════════════════════ */
+function _extHandleItemAction(item, action){
+  if(action==='pin')           { _togglePin(item); return; }
+  if(action==='archive')       { _archiveItem(item); return; }
+  if(action==='delete'){
+    const copy = JSON.parse(JSON.stringify(item));
+    state.actionItems = state.actionItems.filter(i=>i.id!==item.id);
+    saveState(); renderActionItems(); renderCurrentTaskBanner();
+    _pushUndo(copy);
+    return;
+  }
+  // For all other actions, use existing handler then show toast
+  const wasCompleted = item.status==='Completed';
+  handleItemAction(item, action);
+  if(action==='start')     prodToast('Task started.','info');
+  else if(action==='pause')    prodToast('Task paused.','warn');
+  else if(action==='resume')   prodToast('Task resumed.','info');
+  else if(action==='finish'){
+    prodToast('Task completed! ✓','success');
+    if(item.repeat) _scheduleRepeat(item);
+  }
+  else if(action==='cancel')   prodToast('Task cancelled.','warn');
+  else if(action==='duplicate') prodToast('Task duplicated.','info');
+}
+
+/* ══════════════════════════════════════════
+   PATCH: extend openModal + saveModal for new fields
+══════════════════════════════════════════ */
+const _origOpenModal = openModal;
+openModal = function(item){
+  _origOpenModal.apply(this,arguments);
+  // Set new fields
+  const archiveBtn = document.getElementById('ai-modal-archive');
+  if(archiveBtn) archiveBtn.style.display = (item&&!item.archived)?'inline-flex':'none';
+  const actualInp = document.getElementById('ai-f-actual');
+  if(actualInp) actualInp.value = item?.actualDurationManual||'';
+  const repeatSel = document.getElementById('ai-f-repeat');
+  if(repeatSel) repeatSel.value = item?.repeat||'';
+  const pinChk = document.getElementById('ai-f-pin');
+  if(pinChk) pinChk.checked = !!(item?.pinned);
+  _setModalCategory(item?.category||'');
+};
+
+const _origSaveModal = saveModal;
+saveModal = function(){
+  // Grab new fields before original runs
+  const actualVal  = parseInt((document.getElementById('ai-f-actual')||{}).value)||0;
+  const repeatVal  = (document.getElementById('ai-f-repeat')||{}).value||'';
+  const pinVal     = !!(document.getElementById('ai-f-pin')||{}).checked;
+  const catVal     = _getModalCategory();
+  // Temporarily override category field value so original saveModal picks it up
+  const catSel = document.getElementById('ai-f-cat');
+  const origCatVal = catSel?catSel.value:'';
+  if(catSel) catSel.value = catVal; // use resolved value
+  _origSaveModal.apply(this,arguments);
+  if(catSel) catSel.value = origCatVal; // restore
+  // Now patch the just-saved item with new fields
+  const saved = editingId
+    ? state.actionItems.find(i=>i.id===editingId)
+    : state.actionItems[0];
+  if(saved){
+    saved.actualDurationManual = actualVal;
+    saved.repeat  = repeatVal;
+    saved.pinned  = pinVal;
+    if(catVal) saved.category = catVal;
+    saveState();
+    renderActionItems();
+  }
+  const isEdit = !!editingId;
+  prodToast(isEdit?'Task updated.':'Task created.', isEdit?'info':'success');
+};
+
+/* ══════════════════════════════════════════
+   ARCHIVED PANEL TOGGLE
+══════════════════════════════════════════ */
+function _initArchivedPanel(){
+  const btn   = document.getElementById('ai-archived-btn');
+  const panel = document.getElementById('ai-archived-panel');
+  const list  = document.getElementById('ai-list');
+  if(!btn||!panel) return;
+  btn.addEventListener('click',()=>{
+    const showing = panel.style.display!=='none';
+    panel.style.display = showing?'none':'block';
+    if(list) list.style.display = showing?'block':'none';
+    btn.textContent = showing?'\uD83D\uDDC4 Archived':'\u2190 Back';
+    if(!showing) renderArchivedItems();
+  });
+}
+
+/* ══════════════════════════════════════════
+   PATCH: archive button in modal
+══════════════════════════════════════════ */
+function _initModalArchiveBtn(){
+  const btn = document.getElementById('ai-modal-archive');
+  if(!btn) return;
+  btn.addEventListener('click',()=>{
+    if(!editingId) return;
+    const item=state.actionItems.find(i=>i.id===editingId);
+    if(item){ closeModal(); _archiveItem(item); }
+  });
+}
+
+/* ══════════════════════════════════════════
+   PATCH: toast for planner saves, backup
+══════════════════════════════════════════ */
+const _origRenderPlannerInner = renderPlanner;
+// Note: renderPlanner is already wrapped by the sync layer. We hook saveState to detect planner saves.
+// Instead, patch initPlanner add-btn to show toast.
+const _origInitPlannerExt = initPlanner;
+initPlanner = function(){
+  _origInitPlannerExt.apply(this,arguments);
+  document.querySelectorAll('.planner-add-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      setTimeout(()=>prodToast('Planner task saved.','success',1800),50);
+    });
+  });
+};
+
+/* Backup toast handled inside initBackupRestore v2 */
+
+/* ══════════════════════════════════════════
+   PRIORITY filter — add Critical option
+══════════════════════════════════════════ */
+(function(){
+  const priSel = document.getElementById('ai-filter-pri');
+  if(priSel&&!Array.from(priSel.options).find(o=>o.value==='Critical')){
+    const opt=document.createElement('option');opt.value='Critical';opt.textContent='Critical';
+    priSel.insertBefore(opt, priSel.options[1]);
+  }
+})();
+
+/* ══════════════════════════════════════════
+   EXTENDED INIT
+══════════════════════════════════════════ */
+function _initExtendedFeatures(){
+  _initCategoryToggle();
+  _initGlobalSearch();
+  _initArchivedPanel();
+  _initModalArchiveBtn();
+}
+
+/* Wrap renderPlanner so every planner change also syncs the dashboard */
 const _origRenderPlanner = renderPlanner;
 renderPlanner = function(){
   _origRenderPlanner.apply(this, arguments);
   syncPlannerToRoutine();
 };
 
-/* Also wrap initPlanner's add so dashboard reflects new items instantly */
-const _origInitPlanner = initPlanner;
-initPlanner = function(){
-  _origInitPlanner.apply(this, arguments);
-  // Patch each add-btn to also call sync after saving
-  document.querySelectorAll('.planner-add-btn').forEach(btn => {
-    const orig = btn.onclick; // no-op, events are via addEventListener
-    btn.addEventListener('click', () => {
-      // syncPlannerToRoutine is already called via wrapped renderPlanner
-    });
-  });
-};
-
 /* Auto-switch period every 60 seconds as time changes */
 setInterval(syncPlannerToRoutine, 60 * 1000);
+
+/* Also re-sync active task timer every second when overlay is closed */
+setInterval(() => {
+  const overlay = document.getElementById('prod-overlay');
+  if(overlay && !overlay.classList.contains('open')) syncPlannerToRoutine();
+}, 5000);
 
 })();
 </script>
