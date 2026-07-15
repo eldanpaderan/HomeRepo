@@ -3519,12 +3519,12 @@ const _board = (function(){
 
     /* ── Mouse drag events ── */
     card.addEventListener('dragstart', e=>{
-      _dragItem = item;
+      // Re-read from state at drag time — never rely on stale closure reference
+      const liveItem = state.actionItems.find(i=>i.id===item.id);
+      _dragItem = liveItem || item;
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', item.id);
-      // Delay so browser screenshot doesn't show dragging state
-      setTimeout(()=>card.classList.add('dragging'), 0);
     });
 
     card.addEventListener('dragend', ()=>{
@@ -3550,7 +3550,8 @@ const _board = (function(){
   function _onTouchStart(e){
     const card = e.currentTarget;
     const id   = card.dataset.id;
-    _touchItem  = state.actionItems.find(i=>i.id===id);
+    // Always re-read live from state — card may be from a previous render cycle
+    _touchItem  = state.actionItems.find(i=>i.id===id) || null;
     _touchStartX = e.touches[0].clientX;
     _touchStartY = e.touches[0].clientY;
     _touchMoved  = false;
@@ -3647,9 +3648,20 @@ const _board = (function(){
   }
 
   /* ── PUBLIC: renderBoard ── */
+  /* ── AbortController per column — lets us cleanly remove listeners each render ── */
+  const _colControllers = new Map(); // colEl element → AbortController
+
   function renderBoard(){
+    // Reset stale drag state from any interrupted previous drag
+    _dragItem  = null;
+    _touchItem = null;
+
     // Stop previous live timers
     if(_boardTimerRaf){ cancelAnimationFrame(_boardTimerRaf); _boardTimerRaf=null; }
+
+    // Abort (remove) ALL previous column listeners before re-rendering
+    _colControllers.forEach(ctrl=>ctrl.abort());
+    _colControllers.clear();
 
     // Render cards into each column
     Object.entries(COL_STATUS).forEach(([status, elId])=>{
@@ -3657,8 +3669,7 @@ const _board = (function(){
       if(!col) return;
       col.innerHTML = '';
       const items = state.actionItems.filter(i=>i.status===status&&!i.archived);
-      items.forEach(item=>{ col.appendChild(_makeCard(item)); });
-      // Empty state
+      items.forEach(item=>col.appendChild(_makeCard(item)));
       if(!items.length){
         const empty = document.createElement('div');
         empty.style.cssText='text-align:center;padding:1.5rem 0.5rem;font-family:\'DM Mono\',monospace;font-size:0.62rem;color:rgba(255,255,255,0.15);';
@@ -3667,36 +3678,12 @@ const _board = (function(){
       }
     });
 
-    // Register column drop handlers ONCE per render (remove old ones via cloneNode trick)
+    // Attach fresh column listeners — each column gets its own AbortController
     document.querySelectorAll('.prod-board-col').forEach(colEl=>{
-      const fresh = colEl.cloneNode(true);
-      colEl.parentNode.replaceChild(fresh, colEl);
-    });
+      const ctrl = new AbortController();
+      const sig  = ctrl.signal;
+      _colControllers.set(colEl, ctrl);
 
-    document.querySelectorAll('.prod-board-col').forEach(colEl=>{
-      // Re-attach card events after cloneNode
-      const cards = colEl.querySelectorAll('.prod-board-cards .prod-board-card');
-      cards.forEach(cardEl=>{
-        const id   = cardEl.dataset.id;
-        const item = state.actionItems.find(i=>i.id===id);
-        if(!item) return;
-        cardEl.draggable = true;
-        cardEl.addEventListener('dragstart', e=>{
-          _dragItem = item;
-          cardEl.classList.add('dragging');
-          e.dataTransfer.effectAllowed='move';
-          e.dataTransfer.setData('text/plain', id);
-        });
-        cardEl.addEventListener('dragend', ()=>{
-          _dragItem=null;
-          _clearDragState();
-        });
-        cardEl.addEventListener('touchstart', _onTouchStart, {passive:false});
-        cardEl.addEventListener('touchmove',  _onTouchMove,  {passive:false});
-        cardEl.addEventListener('touchend',   _onTouchEnd,   {passive:false});
-      });
-
-      // Column drag-over / drop
       colEl.addEventListener('dragover', e=>{
         e.preventDefault();
         e.dataTransfer.dropEffect='move';
@@ -3706,10 +3693,9 @@ const _board = (function(){
           colEl.classList.add('drop-ready','prod-board-drop-target');
           _showDropIndicator(colEl);
         }
-      });
+      }, {signal: sig});
 
       colEl.addEventListener('dragleave', e=>{
-        // Only clear if leaving the column entirely (not entering a child)
         if(!colEl.contains(e.relatedTarget)){
           colEl.classList.remove('drop-ready','prod-board-drop-target');
           if(_dropTarget===colEl) _dropTarget=null;
@@ -3717,20 +3703,24 @@ const _board = (function(){
             _dropIndicator.remove(); _dropIndicator=null;
           }
         }
-      });
+      }, {signal: sig});
 
       colEl.addEventListener('drop', e=>{
         e.preventDefault();
+        // Always re-read _dragItem at drop time — never use a closure-captured reference
         const newStatus = colEl.dataset.col;
-        const item      = _dragItem;
+        const droppedId = e.dataTransfer.getData('text/plain');
+        // Prefer _dragItem (mouse) or droppedId (fallback)
+        const item = _dragItem || state.actionItems.find(i=>i.id===droppedId);
         _dragItem = null;
         _clearDragState();
-        if(!item || !newStatus) return;
+        if(!item || !newStatus || item.status===newStatus) return;
         _applyDrop(item, newStatus);
-      });
+      }, {signal: sig});
     });
 
-    // Start live timers for running tasks
+    // Card listeners are set fresh inside _makeCard — no re-attach needed here
+    // because col.innerHTML='' + appendChild creates brand-new DOM nodes each time.
     _startBoardTimers();
   }
 
