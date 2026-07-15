@@ -2694,6 +2694,20 @@ renderBudget();
 .prod-board-card-title{font-size:0.8rem;font-weight:600;color:#fff;margin-bottom:0.3rem;}
 .prod-board-card-meta{display:flex;gap:0.4rem;flex-wrap:wrap;}
 .prod-board-drop-target{background:rgba(20,184,166,0.06);border:1.5px dashed rgba(20,184,166,0.3);}
+/* ── Enhanced drag-and-drop styles ── */
+.prod-board-card{transition:opacity 0.18s ease,transform 0.18s ease,box-shadow 0.18s ease;}
+.prod-board-card.dragging{opacity:0.25;transform:scale(0.97);box-shadow:none;cursor:grabbing;}
+.prod-board-card.drag-over-above{border-top:2px solid #14b8a6 !important;margin-top:-1px;}
+.prod-board-card.drag-over-below{border-bottom:2px solid #14b8a6 !important;margin-bottom:-1px;}
+.prod-board-col.drop-ready{background:rgba(20,184,166,0.07);border-color:rgba(20,184,166,0.35);}
+.prod-board-col.drop-ready .prod-board-col-hd{color:#14b8a6;}
+.prod-board-drop-indicator{height:3px;background:linear-gradient(90deg,#14b8a6,#10b981);border-radius:2px;margin:2px 0;transition:opacity 0.1s ease;}
+/* Pinned badge on board */
+.board-card-pin{font-size:0.65rem;margin-left:auto;opacity:0.5;}
+/* Status chip on board card */
+.board-card-timer{font-family:'DM Mono',monospace;font-size:0.58rem;color:rgba(255,255,255,0.3);margin-top:0.25rem;}
+/* Touch drag ghost */
+.prod-board-touch-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:0.85;transform:rotate(2deg) scale(1.04);transition:none;background:#1a2235;border:1px solid rgba(20,184,166,0.4);border-radius:8px;padding:0.65rem 0.75rem;box-shadow:0 8px 32px rgba(0,0,0,0.5);max-width:200px;}
 .prod-focus-wrap{max-width:420px;margin:0 auto;text-align:center;}
 .prod-focus-tabs{display:flex;gap:0.4rem;flex-wrap:wrap;justify-content:center;margin-bottom:1.5rem;}
 .prod-focus-tab{padding:0.4rem 0.9rem;border-radius:7px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(255,255,255,0.4);font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;}
@@ -3351,35 +3365,380 @@ function initModal(){
 /* ══════════════════════════════════════════
    TASK BOARD
 ══════════════════════════════════════════ */
-function renderBoard(){
-  const cols={'Not Started':'board-col-notstarted','In Progress':'board-col-inprogress','Paused':'board-col-paused','Completed':'board-col-completed'};
-  Object.entries(cols).forEach(([status,elId])=>{
-    const col=$(elId);if(!col)return;
-    col.innerHTML='';
-    state.actionItems.filter(i=>i.status===status).forEach(item=>{
-      const card=document.createElement('div');
-      card.className='prod-board-card';card.draggable=true;card.dataset.id=item.id;
-      card.innerHTML=`<div class="prod-board-card-title">${escH(item.title)}</div><div class="prod-board-card-meta">${item.category?`<span class="ai-badge badge-cat">${escH(item.category)}</span>`:''}<span class="ai-badge badge-${(item.priority||'medium').toLowerCase()}">${escH(item.priority||'Medium')}</span></div>`;
-      card.addEventListener('dragstart',e=>{dragItem=item;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-      card.addEventListener('dragend',()=>{dragItem=null;card.classList.remove('dragging');document.querySelectorAll('.prod-board-drop-target').forEach(c=>c.classList.remove('prod-board-drop-target'));});
-      col.appendChild(card);
+/* ══════════════════════════════════════════
+   TASK BOARD — enhanced drag-and-drop
+   - Mouse drag (desktop)
+   - Touch drag (iPad / mobile)
+   - Drop indicator line (shows where card lands)
+   - Listeners registered once per board render (not stacked)
+   - Full status transition matrix
+   - Automatic time tracking on drop
+   - Dashboard + stats refresh on drop
+══════════════════════════════════════════ */
+
+/* Board module — wrapped to avoid polluting outer scope */
+const _board = (function(){
+
+  /* ── State ── */
+  let _dragItem  = null;  // the task object being dragged
+  let _touchGhost= null;  // floating ghost element for touch
+  let _dropTarget= null;  // current column el hovered
+  let _dropIndicator = null;
+
+  /* ── Column → status map ── */
+  const COL_STATUS = {
+    'Not Started': 'board-col-notstarted',
+    'In Progress': 'board-col-inprogress',
+    'Paused':      'board-col-paused',
+    'Completed':   'board-col-completed',
+  };
+
+  /* ── Apply a status transition with proper time tracking ── */
+  function _applyDrop(item, newStatus){
+    if(!item || item.status === newStatus) return;
+    const now = Date.now();
+
+    if(newStatus === 'In Progress'){
+      if(item.status === 'Not Started'){
+        // First start
+        item.startTimestamp = now;
+        item.startDate      = new Date(now).toISOString().slice(0,10);
+        item.startTime      = new Date(now).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+        item.totalPausedMs  = 0;
+        item.pausedAt       = null;
+        item.status         = 'In Progress';
+        if(typeof prodToast==='function') prodToast('Task started.','info',2000);
+      } else if(item.status === 'Paused'){
+        // Resume
+        if(item.pausedAt){
+          item.totalPausedMs = (item.totalPausedMs||0) + (now - item.pausedAt);
+          item.pausedAt = null;
+        }
+        item.status = 'In Progress';
+        if(typeof prodToast==='function') prodToast('Task resumed.','info',2000);
+      } else {
+        // Generic move to In Progress (e.g. from Completed back)
+        item.status = 'In Progress';
+      }
+    } else if(newStatus === 'Paused'){
+      item.pausedAt = now;
+      item.status   = 'Paused';
+      if(typeof prodToast==='function') prodToast('Task paused.','warn',2000);
+    } else if(newStatus === 'Completed'){
+      // Finish with full time calc
+      item.finishTimestamp = now;
+      item.finishDate      = new Date(now).toISOString().slice(0,10);
+      item.finishTime      = new Date(now).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+      if(item.pausedAt){
+        item.totalPausedMs = (item.totalPausedMs||0) + (now - item.pausedAt);
+        item.pausedAt = null;
+      }
+      if(item.startTimestamp){
+        const total        = now - item.startTimestamp;
+        item.actualDuration   = Math.round((total - (item.totalPausedMs||0)) / 1000);
+        item.workingTimeSecs  = item.actualDuration;
+        item.pausedTimeSecs   = Math.round((item.totalPausedMs||0) / 1000);
+      }
+      item.status = 'Completed';
+      if(typeof prodToast==='function') prodToast('Task completed! ✓','success',2500);
+      // Schedule repeat if configured
+      if(item.repeat && typeof _scheduleRepeat==='function') _scheduleRepeat(item);
+    } else if(newStatus === 'Not Started'){
+      item.status = 'Not Started';
+    } else if(newStatus === 'Cancelled'){
+      item.status = 'Cancelled';
+    } else {
+      item.status = newStatus;
+    }
+
+    // Persist and refresh all relevant views
+    if(typeof saveState==='function') saveState();
+    renderBoard();
+    if(typeof renderCurrentTaskBanner==='function') renderCurrentTaskBanner();
+    // Refresh dashboard stats if dashboard is visible
+    const dashView = document.getElementById('view-dashboard');
+    if(dashView && dashView.classList.contains('active') && typeof renderDashboard==='function'){
+      renderDashboard();
+    }
+    // Refresh action items list if visible
+    const actView = document.getElementById('view-actions');
+    if(actView && actView.classList.contains('active') && typeof renderActionItems==='function'){
+      renderActionItems();
+    }
+  }
+
+  /* ── Clear all drag visual state ── */
+  function _clearDragState(){
+    document.querySelectorAll('.prod-board-col.drop-ready').forEach(c=>{
+      c.classList.remove('drop-ready','prod-board-drop-target');
     });
-  });
-  document.querySelectorAll('.prod-board-col').forEach(colEl=>{
-    colEl.addEventListener('dragover',e=>{e.preventDefault();colEl.classList.add('prod-board-drop-target');});
-    colEl.addEventListener('dragleave',()=>colEl.classList.remove('prod-board-drop-target'));
-    colEl.addEventListener('drop',e=>{
-      e.preventDefault();colEl.classList.remove('prod-board-drop-target');
-      if(!dragItem)return;
-      const ns=colEl.dataset.col;if(dragItem.status===ns)return;
-      if(ns==='In Progress'&&dragItem.status==='Not Started')handleItemAction(dragItem,'start');
-      else if(ns==='Paused'&&dragItem.status==='In Progress')handleItemAction(dragItem,'pause');
-      else if(ns==='In Progress'&&dragItem.status==='Paused')handleItemAction(dragItem,'resume');
-      else if(ns==='Completed'){finishItem(dragItem);saveState();renderBoard();}
-      else{dragItem.status=ns;saveState();renderBoard();}
+    document.querySelectorAll('.prod-board-card.dragging').forEach(c=>c.classList.remove('dragging'));
+    if(_dropIndicator && _dropIndicator.parentNode){
+      _dropIndicator.parentNode.removeChild(_dropIndicator);
+    }
+    _dropIndicator = null;
+    _dropTarget    = null;
+  }
+
+  /* ── Show drop indicator line inside a column ── */
+  function _showDropIndicator(colEl){
+    if(!_dropIndicator){
+      _dropIndicator = document.createElement('div');
+      _dropIndicator.className = 'prod-board-drop-indicator';
+    }
+    const cards = colEl.querySelector('.prod-board-cards');
+    if(cards && !_dropIndicator.parentNode){
+      cards.appendChild(_dropIndicator);
+    }
+  }
+
+  /* ── Build a card element ── */
+  function _makeCard(item){
+    const card = document.createElement('div');
+    card.className   = 'prod-board-card' + (item.pinned ? ' ai-item-pinned' : '');
+    card.draggable   = true;
+    card.dataset.id  = item.id;
+    card.dataset.status = item.status;
+
+    const pri   = (item.priority||'medium').toLowerCase();
+    const timer = item.status === 'In Progress' && item.startTimestamp
+      ? '<div class="board-card-timer" data-board-timer="'+item.id+'">&#9654; running</div>'
+      : item.actualDuration
+        ? '<div class="board-card-timer">&#10003; '+_fmtDur(item.actualDuration)+'</div>'
+        : '';
+
+    card.innerHTML =
+      '<div class="prod-board-card-title">'+(item.pinned?'&#x1F4CC; ':'')+ escH(item.title)+'</div>'+
+      '<div class="prod-board-card-meta">'+
+        (item.category?'<span class="ai-badge badge-cat">'+escH(item.category)+'</span>':'')+
+        '<span class="ai-badge badge-'+pri+'">'+escH(item.priority||'Medium')+'</span>'+
+        (item.tags ? item.tags.split(',').slice(0,2).map(t=>'<span class="ai-badge badge-status">'+escH(t.trim())+'</span>').join('') : '')+
+      '</div>'+
+      (item.estimatedDuration ? '<div class="board-card-timer">Est: '+item.estimatedDuration+'m</div>' : '')+
+      timer;
+
+    /* ── Mouse drag events ── */
+    card.addEventListener('dragstart', e=>{
+      _dragItem = item;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', item.id);
+      // Delay so browser screenshot doesn't show dragging state
+      setTimeout(()=>card.classList.add('dragging'), 0);
     });
-  });
-}
+
+    card.addEventListener('dragend', ()=>{
+      _dragItem = null;
+      _clearDragState();
+    });
+
+    /* ── Touch drag events (iPad / mobile) ── */
+    card.addEventListener('touchstart', _onTouchStart, {passive:false});
+    card.addEventListener('touchmove',  _onTouchMove,  {passive:false});
+    card.addEventListener('touchend',   _onTouchEnd,   {passive:false});
+
+    return card;
+  }
+
+  /* ── Touch drag implementation ── */
+  let _touchItem   = null;
+  let _touchStartX = 0;
+  let _touchStartY = 0;
+  let _touchMoved  = false;
+  const TOUCH_THRESHOLD = 8; // px before we consider it a drag
+
+  function _onTouchStart(e){
+    const card = e.currentTarget;
+    const id   = card.dataset.id;
+    _touchItem  = state.actionItems.find(i=>i.id===id);
+    _touchStartX = e.touches[0].clientX;
+    _touchStartY = e.touches[0].clientY;
+    _touchMoved  = false;
+  }
+
+  function _onTouchMove(e){
+    if(!_touchItem) return;
+    const dx = e.touches[0].clientX - _touchStartX;
+    const dy = e.touches[0].clientY - _touchStartY;
+    if(!_touchMoved && Math.sqrt(dx*dx+dy*dy) < TOUCH_THRESHOLD) return;
+    e.preventDefault();
+    _touchMoved = true;
+    _dragItem   = _touchItem;
+
+    const tx = e.touches[0].clientX;
+    const ty = e.touches[0].clientY;
+
+    // Create / move ghost
+    if(!_touchGhost){
+      const card = e.currentTarget;
+      _touchGhost = document.createElement('div');
+      _touchGhost.className = 'prod-board-touch-ghost';
+      _touchGhost.innerHTML = card.innerHTML;
+      document.body.appendChild(_touchGhost);
+    }
+    _touchGhost.style.left  = (tx - 60) + 'px';
+    _touchGhost.style.top   = (ty - 30) + 'px';
+
+    // Find column under finger
+    _touchGhost.style.display = 'none';
+    const el = document.elementFromPoint(tx, ty);
+    _touchGhost.style.display = '';
+    const colEl = el ? el.closest('.prod-board-col') : null;
+
+    _clearDragState();
+    if(colEl){
+      colEl.classList.add('drop-ready');
+      _dropTarget = colEl;
+      _showDropIndicator(colEl);
+    } else {
+      _dropTarget = null;
+    }
+  }
+
+  function _onTouchEnd(e){
+    if(_touchGhost){ _touchGhost.remove(); _touchGhost=null; }
+    _clearDragState();
+
+    if(!_touchMoved || !_dragItem || !_dropTarget){
+      _dragItem  = null;
+      _touchItem = null;
+      return;
+    }
+
+    const newStatus = _dropTarget.dataset.col;
+    const item      = _dragItem;
+    _dragItem  = null;
+    _touchItem = null;
+    _dropTarget= null;
+
+    if(item && newStatus && item.status !== newStatus){
+      _applyDrop(item, newStatus);
+    }
+  }
+
+  /* ── Duration formatter (local, doesn't depend on outer fmtDur timing) ── */
+  function _fmtDur(secs){
+    if(!secs||secs<0) return '';
+    const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
+    return h ? h+'h '+m+'m' : m ? m+'m '+s+'s' : s+'s';
+  }
+
+  /* ── Live running timer on board cards ── */
+  let _boardTimerRaf = null;
+  function _startBoardTimers(){
+    if(_boardTimerRaf){ cancelAnimationFrame(_boardTimerRaf); _boardTimerRaf=null; }
+    function tick(){
+      const now = Date.now();
+      document.querySelectorAll('[data-board-timer]').forEach(el=>{
+        const id   = el.dataset.boardTimer;
+        const item = state.actionItems.find(i=>i.id===id);
+        if(!item||!item.startTimestamp) return;
+        const paused  = item.totalPausedMs||0;
+        const elapsed = Math.max(0, Math.floor((now - item.startTimestamp - paused)/1000));
+        const h=String(Math.floor(elapsed/3600)).padStart(2,'0');
+        const m=String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
+        const s=String(elapsed%60).padStart(2,'0');
+        el.textContent = '\u25B6 '+h+':'+m+':'+s;
+      });
+      _boardTimerRaf = requestAnimationFrame(tick);
+    }
+    const hasRunning = state.actionItems.some(i=>i.status==='In Progress'&&i.startTimestamp);
+    if(hasRunning) _boardTimerRaf = requestAnimationFrame(tick);
+  }
+
+  /* ── PUBLIC: renderBoard ── */
+  function renderBoard(){
+    // Stop previous live timers
+    if(_boardTimerRaf){ cancelAnimationFrame(_boardTimerRaf); _boardTimerRaf=null; }
+
+    // Render cards into each column
+    Object.entries(COL_STATUS).forEach(([status, elId])=>{
+      const col = document.getElementById(elId);
+      if(!col) return;
+      col.innerHTML = '';
+      const items = state.actionItems.filter(i=>i.status===status&&!i.archived);
+      items.forEach(item=>{ col.appendChild(_makeCard(item)); });
+      // Empty state
+      if(!items.length){
+        const empty = document.createElement('div');
+        empty.style.cssText='text-align:center;padding:1.5rem 0.5rem;font-family:\'DM Mono\',monospace;font-size:0.62rem;color:rgba(255,255,255,0.15);';
+        empty.textContent='Drop tasks here';
+        col.appendChild(empty);
+      }
+    });
+
+    // Register column drop handlers ONCE per render (remove old ones via cloneNode trick)
+    document.querySelectorAll('.prod-board-col').forEach(colEl=>{
+      const fresh = colEl.cloneNode(true);
+      colEl.parentNode.replaceChild(fresh, colEl);
+    });
+
+    document.querySelectorAll('.prod-board-col').forEach(colEl=>{
+      // Re-attach card events after cloneNode
+      const cards = colEl.querySelectorAll('.prod-board-cards .prod-board-card');
+      cards.forEach(cardEl=>{
+        const id   = cardEl.dataset.id;
+        const item = state.actionItems.find(i=>i.id===id);
+        if(!item) return;
+        cardEl.draggable = true;
+        cardEl.addEventListener('dragstart', e=>{
+          _dragItem = item;
+          cardEl.classList.add('dragging');
+          e.dataTransfer.effectAllowed='move';
+          e.dataTransfer.setData('text/plain', id);
+        });
+        cardEl.addEventListener('dragend', ()=>{
+          _dragItem=null;
+          _clearDragState();
+        });
+        cardEl.addEventListener('touchstart', _onTouchStart, {passive:false});
+        cardEl.addEventListener('touchmove',  _onTouchMove,  {passive:false});
+        cardEl.addEventListener('touchend',   _onTouchEnd,   {passive:false});
+      });
+
+      // Column drag-over / drop
+      colEl.addEventListener('dragover', e=>{
+        e.preventDefault();
+        e.dataTransfer.dropEffect='move';
+        if(_dropTarget !== colEl){
+          _clearDragState();
+          _dropTarget = colEl;
+          colEl.classList.add('drop-ready','prod-board-drop-target');
+          _showDropIndicator(colEl);
+        }
+      });
+
+      colEl.addEventListener('dragleave', e=>{
+        // Only clear if leaving the column entirely (not entering a child)
+        if(!colEl.contains(e.relatedTarget)){
+          colEl.classList.remove('drop-ready','prod-board-drop-target');
+          if(_dropTarget===colEl) _dropTarget=null;
+          if(_dropIndicator && colEl.contains(_dropIndicator)){
+            _dropIndicator.remove(); _dropIndicator=null;
+          }
+        }
+      });
+
+      colEl.addEventListener('drop', e=>{
+        e.preventDefault();
+        const newStatus = colEl.dataset.col;
+        const item      = _dragItem;
+        _dragItem = null;
+        _clearDragState();
+        if(!item || !newStatus) return;
+        _applyDrop(item, newStatus);
+      });
+    });
+
+    // Start live timers for running tasks
+    _startBoardTimers();
+  }
+
+  return { render: renderBoard };
+})();
+
+/* Expose as global renderBoard (replaces the old one) */
+function renderBoard(){ _board.render(); }
 
 /* ══════════════════════════════════════════
    FOCUS TIMER
