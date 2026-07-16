@@ -3817,6 +3817,76 @@ function updateFocusTotalToday(){
 /* ══════════════════════════════════════════
    DAILY PLANNER
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   DAILY PLANNER ROLLOVER (additive — no existing code modified)
+
+   Logic:
+   1. Check if today's planner already has items → nothing to do.
+   2. Find the most recent previous day that has planner items.
+   3. Copy those items to today, resetting done=false.
+   4. New IDs generated → no duplicate IDs across days.
+   5. Previous day's items left completely untouched.
+   6. Idempotent: calling multiple times on the same day is safe.
+══════════════════════════════════════════ */
+function rolloverPlanner(){
+  try{
+    const todayKey = 'planner_' + today();
+
+    // Guard 1: today already has items → nothing to roll over
+    const todayItems = (state.plannerItems||[]).filter(i=>i.dateKey===todayKey);
+    if(todayItems.length > 0) return;
+
+    // Guard 2: no planner items at all → nothing to roll over
+    if(!state.plannerItems || state.plannerItems.length === 0) return;
+
+    // Find all distinct dates that have planner items, sorted newest first
+    const allDates = [...new Set(
+      state.plannerItems.map(i=>i.dateKey).filter(Boolean)
+    )].sort().reverse();   // lexicographic sort works for planner_YYYY-MM-DD
+
+    // Remove todayKey from candidates (shouldn't be there, but be safe)
+    const prevDates = allDates.filter(k=>k !== todayKey);
+    if(prevDates.length === 0) return;
+
+    // Pick the most recent previous day
+    const sourceKey   = prevDates[0];
+    const sourceItems = state.plannerItems.filter(i=>i.dateKey===sourceKey);
+    if(sourceItems.length === 0) return;
+
+    // Copy to today — new IDs, done reset, dateKey updated, original preserved
+    const rolledOver = sourceItems.map(item=>({
+      id        : 'p' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      label     : item.label,
+      period    : item.period,
+      dateKey   : todayKey,
+      done      : false,               // always reset completion
+      createdAt : Date.now(),
+      // Preserve optional fields if they exist (backward-compatible)
+      ...(item.priority ? {priority: item.priority} : {}),
+      ...(item.category ? {category: item.category} : {}),
+      ...(item.notes    ? {notes:    item.notes}    : {}),
+    }));
+
+    // Append rolled-over items (originals untouched in state.plannerItems)
+    state.plannerItems = [...state.plannerItems, ...rolledOver];
+    saveState();
+
+    console.info(
+      '[Productivity] Planner rolled over ' + rolledOver.length +
+      ' tasks from ' + sourceKey + ' → ' + todayKey
+    );
+    if(typeof prodToast==='function'){
+      prodToast(
+        rolledOver.length + ' tasks carried over from yesterday.',
+        'info', 4000
+      );
+    }
+  }catch(e){
+    // Never crash the app over a rollover failure
+    console.warn('[Productivity] rolloverPlanner error:', e);
+  }
+}
+
 function renderPlanner(){
   const lbl=$('planner-date-label');
   if(lbl)lbl.textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'});
@@ -4376,6 +4446,8 @@ function _safeInit(name, fn){
 
 function init(){
   loadState();
+  // Rollover planner before anything renders — must run after loadState()
+  _safeInit('rolloverPlanner', rolloverPlanner);
   _safeInit('validateStateIntegrity', validateStateIntegrity);
   _safeInit('initNav',                initNav);
   _safeInit('initModal',              initModal);
