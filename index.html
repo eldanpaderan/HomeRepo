@@ -2393,12 +2393,94 @@ renderBudget();
       <div style="margin-bottom:0.75rem;position:relative;">
         <input class="prod-filter-input" type="text" id="ai-global-search" placeholder="&#128269; Search by title, category, tags, notes, status..." style="width:100%;min-width:unset;padding-left:0.75rem;"/>
       </div>
+      <!-- BULK SELECTION TOOLBAR (shown when ≥1 item selected) -->
+      <div id="ai-bulk-toolbar" style="display:none;margin-bottom:0.6rem;">
+        <div class="ai-bulk-bar">
+          <span class="ai-bulk-count" id="ai-bulk-count">0 selected</span>
+          <div class="ai-bulk-actions">
+            <select class="prod-filter-select ai-bulk-select" id="ai-bulk-status" title="Change Status">
+              <option value="">Status…</option>
+              <option>Not Started</option><option>In Progress</option>
+              <option>Paused</option><option>Completed</option><option>Cancelled</option>
+            </select>
+            <select class="prod-filter-select ai-bulk-select" id="ai-bulk-priority" title="Change Priority">
+              <option value="">Priority…</option>
+              <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+            </select>
+            <select class="prod-filter-select ai-bulk-select" id="ai-bulk-category" title="Change Category">
+              <option value="">Category…</option>
+              <option>Work</option><option>Personal</option><option>Learning</option>
+              <option>Church</option><option>Home</option><option>Health</option>
+            </select>
+            <input class="prod-filter-input ai-bulk-tag-input" id="ai-bulk-add-tag"
+              type="text" placeholder="Add tag…" style="width:90px;min-width:unset;" />
+            <button class="prod-btn prod-btn-muted ai-bulk-btn" id="ai-bulk-add-tag-btn" title="Add tag to selected">+Tag</button>
+            <button class="prod-btn prod-btn-muted ai-bulk-btn" id="ai-bulk-dup-btn">&#x29C9; Dup</button>
+            <button class="prod-btn prod-btn-muted ai-bulk-btn" id="ai-bulk-export-btn">&#x2193; Export</button>
+            <button class="prod-btn prod-btn-amber ai-bulk-btn" id="ai-bulk-archive-btn">&#x1F5C4; Archive</button>
+            <button class="prod-btn prod-btn-rose ai-bulk-btn" id="ai-bulk-delete-btn">&#x1F5D1; Delete</button>
+          </div>
+          <div class="ai-bulk-sel-btns">
+            <button class="prod-btn prod-btn-muted ai-bulk-btn" id="ai-bulk-select-all-btn">Select All</button>
+            <button class="prod-btn prod-btn-muted ai-bulk-btn" id="ai-bulk-clear-btn">Clear</button>
+          </div>
+        </div>
+      </div>
+
       <div class="prod-filters" id="ai-filters">
         <input class="prod-filter-input" type="text" id="ai-search" placeholder="Search..." />
-        <select class="prod-filter-select" id="ai-filter-cat"><option value="">All Categories</option></select>
-        <select class="prod-filter-select" id="ai-filter-pri"><option value="">All Priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
-        <select class="prod-filter-select" id="ai-filter-status"><option value="">All Statuses</option><option>Not Started</option><option>In Progress</option><option>Paused</option><option>Completed</option><option>Cancelled</option></select>
-        <select class="prod-filter-select" id="ai-sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="priority">Priority</option><option value="alpha">A-Z</option><option value="duration">Duration</option></select>
+
+        <!-- Multi-select: Status -->
+        <div class="mf-wrap" id="mf-status-wrap">
+          <button class="mf-trigger prod-filter-select" id="mf-status-trigger" type="button">All Statuses &#9662;</button>
+          <div class="mf-dropdown" id="mf-status-dropdown" style="display:none;">
+            <div class="mf-ctrl"><button class="mf-ctrl-btn" data-mf="status" data-act="all">All</button><button class="mf-ctrl-btn" data-mf="status" data-act="none">Clear</button></div>
+            <label class="mf-opt"><input type="checkbox" value="Not Started" data-mf="status"/> Not Started</label>
+            <label class="mf-opt"><input type="checkbox" value="In Progress"  data-mf="status"/> In Progress</label>
+            <label class="mf-opt"><input type="checkbox" value="Paused"       data-mf="status"/> Paused</label>
+            <label class="mf-opt"><input type="checkbox" value="Completed"    data-mf="status"/> Completed</label>
+            <label class="mf-opt"><input type="checkbox" value="Cancelled"    data-mf="status"/> Cancelled</label>
+          </div>
+        </div>
+
+        <!-- Multi-select: Priority -->
+        <div class="mf-wrap" id="mf-priority-wrap">
+          <button class="mf-trigger prod-filter-select" id="mf-priority-trigger" type="button">All Priorities &#9662;</button>
+          <div class="mf-dropdown" id="mf-priority-dropdown" style="display:none;">
+            <div class="mf-ctrl"><button class="mf-ctrl-btn" data-mf="priority" data-act="all">All</button><button class="mf-ctrl-btn" data-mf="priority" data-act="none">Clear</button></div>
+            <label class="mf-opt"><input type="checkbox" value="Critical" data-mf="priority"/> Critical</label>
+            <label class="mf-opt"><input type="checkbox" value="High"     data-mf="priority"/> High</label>
+            <label class="mf-opt"><input type="checkbox" value="Medium"   data-mf="priority"/> Medium</label>
+            <label class="mf-opt"><input type="checkbox" value="Low"      data-mf="priority"/> Low</label>
+          </div>
+        </div>
+
+        <!-- Multi-select: Category (populated dynamically) -->
+        <div class="mf-wrap" id="mf-category-wrap">
+          <button class="mf-trigger prod-filter-select" id="mf-category-trigger" type="button">All Categories &#9662;</button>
+          <div class="mf-dropdown" id="mf-category-dropdown" style="display:none;">
+            <div class="mf-ctrl"><button class="mf-ctrl-btn" data-mf="category" data-act="all">All</button><button class="mf-ctrl-btn" data-mf="category" data-act="none">Clear</button></div>
+            <div id="mf-category-options"></div>
+          </div>
+        </div>
+
+        <!-- Hidden legacy selects — kept so any code reading .value gets '' safely -->
+        <select id="ai-filter-cat"    style="display:none;"><option value=""></option></select>
+        <select id="ai-filter-pri"    style="display:none;"><option value=""></option></select>
+        <select id="ai-filter-status" style="display:none;"><option value=""></option></select>
+
+        <select class="prod-filter-select" id="ai-sort">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="priority">Priority</option>
+          <option value="alpha">A-Z</option>
+          <option value="duration">Duration</option>
+        </select>
+      </div>
+      <!-- Select-all row -->
+      <div id="ai-select-all-row" style="display:none;align-items:center;gap:0.5rem;padding:0.35rem 0.5rem;margin-bottom:0.35rem;">
+        <input type="checkbox" id="ai-select-all-chk" style="accent-color:#14b8a6;width:14px;height:14px;cursor:pointer;"/>
+        <label for="ai-select-all-chk" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.4);cursor:pointer;user-select:none;">Select all visible</label>
       </div>
       <div id="ai-list" class="prod-list-container"></div>
       <!-- Archived items panel -->
@@ -2642,6 +2724,46 @@ renderBudget();
 .badge-critical{background:rgba(244,63,94,0.18);color:#ff6b6b;border:1px solid rgba(244,63,94,0.35);font-weight:700;}
 .ai-item-pinned{border-top:2px solid #f59e0b !important;}
 .pin-icon{font-size:0.7rem;opacity:0.6;margin-left:auto;flex-shrink:0;}
+/* ── Bulk Selection ── */
+.ai-bulk-bar{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;background:rgba(20,184,166,0.07);border:1px solid rgba(20,184,166,0.2);border-radius:9px;padding:0.55rem 0.85rem;}
+.ai-bulk-count{font-family:'DM Mono',monospace;font-size:0.68rem;color:#14b8a6;font-weight:600;white-space:nowrap;min-width:80px;}
+.ai-bulk-actions{display:flex;gap:0.35rem;flex-wrap:wrap;flex:1;}
+.ai-bulk-sel-btns{display:flex;gap:0.35rem;margin-left:auto;}
+.ai-bulk-btn{padding:0.3rem 0.6rem;font-size:0.62rem;}
+.ai-bulk-select{padding:0.3rem 0.5rem;font-size:0.62rem;min-width:unset;}
+.ai-bulk-tag-input{padding:0.3rem 0.5rem;font-size:0.62rem;}
+.ai-item-checkbox-wrap{display:flex;align-items:flex-start;padding-top:0.15rem;flex-shrink:0;}
+.ai-item-checkbox{width:15px;height:15px;accent-color:#14b8a6;cursor:pointer;margin-top:2px;}
+.ai-item.bulk-selected{border-color:rgba(20,184,166,0.4)!important;background:rgba(20,184,166,0.05)!important;}
+
+/* ── Multi-select filter dropdowns ── */
+.mf-wrap{position:relative;display:inline-block;}
+.mf-trigger{cursor:pointer;text-align:left;white-space:nowrap;min-width:120px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  border-radius:7px;padding:0.45rem 0.65rem;font-family:'DM Mono',monospace;
+  font-size:0.7rem;color:rgba(255,255,255,0.8);transition:border-color 0.15s;}
+.mf-trigger:hover,.mf-trigger.mf-open{border-color:rgba(20,184,166,0.4);color:#fff;}
+.mf-trigger.mf-active{border-color:rgba(20,184,166,0.5);color:#14b8a6;
+  background:rgba(20,184,166,0.08);}
+.mf-dropdown{position:absolute;top:calc(100% + 4px);left:0;z-index:1200;
+  background:#111722;border:1px solid rgba(255,255,255,0.12);border-radius:9px;
+  padding:0.4rem 0;min-width:160px;box-shadow:0 8px 28px rgba(0,0,0,0.5);
+  animation:toastIn 0.15s ease;}
+.mf-ctrl{display:flex;gap:0.35rem;padding:0.3rem 0.6rem 0.4rem;
+  border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:0.2rem;}
+.mf-ctrl-btn{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;
+  padding:0.18rem 0.5rem;border-radius:4px;cursor:pointer;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.5);transition:all 0.12s;}
+.mf-ctrl-btn:hover{border-color:rgba(20,184,166,0.3);color:#14b8a6;}
+.mf-opt{display:flex;align-items:center;gap:0.5rem;padding:0.32rem 0.65rem;
+  font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.65);
+  cursor:pointer;transition:background 0.1s;}
+.mf-opt:hover{background:rgba(255,255,255,0.04);}
+.mf-opt input[type=checkbox]{accent-color:#14b8a6;width:13px;height:13px;
+  cursor:pointer;flex-shrink:0;}
+.mf-opt input[type=checkbox]:checked + *{color:#fff;}
+
 /* Toast notifications */
 #prod-toast-container{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:0.4rem;align-items:center;pointer-events:none;}
 .prod-toast{background:#1a2235;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:0.55rem 1.1rem;font-family:'DM Mono',monospace;font-size:0.7rem;color:rgba(255,255,255,0.85);box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:toastIn 0.25s ease;white-space:nowrap;pointer-events:all;}
@@ -3276,10 +3398,11 @@ function handleItemAction(item,action){
 }
 
 function initActionItemFilters(){
-  ['ai-search','ai-filter-cat','ai-filter-pri','ai-filter-status','ai-sort'].forEach(id=>{
+  // ai-filter-cat/pri/status are now hidden (replaced by multi-select widgets)
+  // Only wire text search here; sort and multi-select wired in _initMultiFilters
+  ['ai-search','ai-global-search'].forEach(id=>{
     const el=$(id);if(!el)return;
     el.addEventListener('input',renderActionItems);
-    el.addEventListener('change',renderActionItems);
   });
   $('ai-new-btn').addEventListener('click',()=>openModal(null));
 }
@@ -4848,16 +4971,21 @@ function _initGlobalSearch(){
    PATCH: extend getFilteredItems to use global search + Critical priority + pinned first + archived exclusion
 ══════════════════════════════════════════ */
 const _origGetFilteredItems = getFilteredItems;
+/* ── Multi-select filter state (Sets of selected values) ── */
+const _mfState = {
+  status   : new Set(),   // empty = "All"
+  priority : new Set(),
+  category : new Set(),
+};
+
 getFilteredItems = function(){
   let items = state.actionItems.filter(i=>!i.archived);
   const search = (document.getElementById('ai-search')||{}).value||'';
   const gs     = (document.getElementById('ai-global-search')||{}).value||'';
   const q      = (gs||search).toLowerCase().trim();
-  const cat    = (document.getElementById('ai-filter-cat')||{}).value||'';
-  const pri    = (document.getElementById('ai-filter-pri')||{}).value||'';
-  const status = (document.getElementById('ai-filter-status')||{}).value||'';
   const sort   = (document.getElementById('ai-sort')||{}).value||'newest';
 
+  // Text search (unchanged)
   if(q) items = items.filter(i=>(
     (i.title||'').toLowerCase().includes(q)||
     (i.category||'').toLowerCase().includes(q)||
@@ -4866,12 +4994,13 @@ getFilteredItems = function(){
     (i.remarks||'').toLowerCase().includes(q)||
     (i.status||'').toLowerCase().includes(q)
   ));
-  if(cat)    items=items.filter(i=>i.category===cat);
-  if(pri)    items=items.filter(i=>i.priority===pri);
-  if(status) items=items.filter(i=>i.status===status);
+
+  // Multi-select: ANY match within group, AND between groups
+  if(_mfState.status.size   > 0) items = items.filter(i=>_mfState.status.has(i.status));
+  if(_mfState.priority.size > 0) items = items.filter(i=>_mfState.priority.has(i.priority));
+  if(_mfState.category.size > 0) items = items.filter(i=>_mfState.category.has(i.category));
 
   items.sort((a,b)=>{
-    // Pinned always first
     if(a.pinned&&!b.pinned) return -1;
     if(!a.pinned&&b.pinned) return 1;
     if(sort==='newest')   return (b.createdTimestamp||0)-(a.createdTimestamp||0);
@@ -4908,7 +5037,11 @@ renderActionItems = function(){
     const actDur = item.actualDurationManual?` &middot; Actual: ${item.actualDurationManual}m`:'';
     const pinClass = item.pinned?' ai-item-pinned':'';
     const repeatBadge = item.repeat?`<span class="ai-badge badge-status">&#x21BA; ${item.repeat}</span>`:'';
-    return `<div class="ai-item ${sc}${pinClass}" data-id="${item.id}">
+    const isSelected = _bulkSelected.has(item.id);
+    return `<div class="ai-item ${sc}${pinClass}${isSelected?' bulk-selected':''}" data-id="${item.id}">
+      <div class="ai-item-checkbox-wrap">
+        <input type="checkbox" class="ai-item-checkbox" data-bulk-id="${item.id}" ${isSelected?'checked':''} />
+      </div>
       <div class="ai-item-main">
         <div class="ai-item-title">${item.pinned?'&#x1F4CC; ':''} ${escH(item.title)}</div>
         <div class="ai-item-meta">
@@ -4941,6 +5074,18 @@ renderActionItems = function(){
       const item=state.actionItems.find(i=>i.id===btn.dataset.id);
       if(item) _extHandleItemAction(item,btn.dataset.action);
     });
+  });
+  // Wire per-item checkboxes
+  list.querySelectorAll('.ai-item-checkbox').forEach(chk=>{
+    chk.addEventListener('change', e=>{
+      e.stopPropagation();
+      const id=chk.dataset.bulkId;
+      if(chk.checked) _bulkSelected.add(id);
+      else            _bulkSelected.delete(id);
+      _updateBulkUI();
+    });
+    // Prevent checkbox click from triggering item action buttons
+    chk.addEventListener('click', e=>e.stopPropagation());
   });
 };
 
@@ -5083,6 +5228,366 @@ function _initExtendedFeatures(){
   _initGlobalSearch();
   _initArchivedPanel();
   _initModalArchiveBtn();
+  _initBulkActions();
+  _initMultiFilters();
+}
+
+/* ══════════════════════════════════════════
+   BULK SELECTION & BULK ACTIONS (additive)
+   State: _bulkSelected = Set of task IDs
+   Never modifies task IDs or localStorage schema.
+══════════════════════════════════════════ */
+
+/* ── Selection state ── */
+let _bulkSelected = new Set();
+
+/* ── Update toolbar visibility and counts ── */
+function _updateBulkUI(){
+  const toolbar     = document.getElementById('ai-bulk-toolbar');
+  const selAllRow   = document.getElementById('ai-select-all-row');
+  const countEl     = document.getElementById('ai-bulk-count');
+  const selAllChk   = document.getElementById('ai-select-all-chk');
+  const n           = _bulkSelected.size;
+
+  if(toolbar)   toolbar.style.display   = n > 0 ? 'block' : 'none';
+  if(selAllRow) selAllRow.style.display = 'flex';
+  if(countEl)   countEl.textContent     = n + (n===1?' task':' tasks')+' selected';
+
+  // Update select-all checkbox state
+  if(selAllChk){
+    const visibleIds = _getVisibleIds();
+    selAllChk.checked       = visibleIds.length > 0 && visibleIds.every(id=>_bulkSelected.has(id));
+    selAllChk.indeterminate = !selAllChk.checked && visibleIds.some(id=>_bulkSelected.has(id));
+  }
+
+  // Sync per-item checkboxes to current _bulkSelected state
+  document.querySelectorAll('.ai-item-checkbox').forEach(chk=>{
+    chk.checked = _bulkSelected.has(chk.dataset.bulkId);
+    const item  = chk.closest('.ai-item');
+    if(item) item.classList.toggle('bulk-selected', chk.checked);
+  });
+
+  // Populate category dropdown with current categories
+  const catSel = document.getElementById('ai-bulk-category');
+  if(catSel && settings.categories && settings.categories.length){
+    const existing = Array.from(catSel.options).map(o=>o.value).filter(Boolean);
+    settings.categories.forEach(cat=>{
+      if(!existing.includes(cat)){
+        const opt=document.createElement('option');opt.value=cat;opt.textContent=cat;catSel.appendChild(opt);
+      }
+    });
+  }
+}
+
+/* ── Get IDs of currently visible (filtered) items ── */
+function _getVisibleIds(){
+  return getFilteredItems().map(i=>i.id);
+}
+
+/* ── Apply a bulk operation to all selected items ── */
+function _applyBulkOp(fn, successMsg){
+  const ids   = [..._bulkSelected];
+  const items = state.actionItems.filter(i=>ids.includes(i.id));
+  if(!items.length) return;
+  items.forEach(fn);
+  saveState();
+  _bulkSelected.clear();
+  renderActionItems();
+  _updateBulkUI();
+  // Refresh dashboard if visible
+  const dv=document.getElementById('view-dashboard');
+  if(dv&&dv.classList.contains('active')&&typeof renderDashboard==='function') renderDashboard();
+  if(typeof prodToast==='function') prodToast(successMsg,'success',2500);
+}
+
+/* ── Export selected items ── */
+function _exportSelected(){
+  const ids   = [..._bulkSelected];
+  const items = state.actionItems.filter(i=>ids.includes(i.id));
+  if(!items.length){ if(typeof prodToast==='function') prodToast('Nothing selected to export.','warn'); return; }
+  const headers=['ID','Title','Category','Priority','Status','Tags','Start Date','Finish Date','Est(min)','Duration','Owner','Remarks'];
+  const rows=items.map(i=>[i.id,i.title,i.category,i.priority,i.status,i.tags,
+    i.startDate,i.finishDate,i.estimatedDuration,
+    i.actualDuration?fmtDur(i.actualDuration):i.actualDurationManual?i.actualDurationManual+'m':'',
+    i.owner,i.remarks].map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"'));
+  const content=[headers,...rows].map(r=>r.join(',')).join('\r\n');
+  const blob=new Blob([content],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='selected_tasks_'+today()+'.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  if(typeof prodToast==='function') prodToast(items.length+' tasks exported.','success');
+}
+
+/* ── Initialize bulk toolbar event listeners ── */
+function _initBulkActions(){
+  // Status change — no confirmation needed
+  const statusSel=document.getElementById('ai-bulk-status');
+  if(statusSel) statusSel.addEventListener('change',()=>{
+    const val=statusSel.value; if(!val) return;
+    _applyBulkOp(item=>{ item.status=val; },'Status updated to: '+val);
+    statusSel.value='';
+  });
+
+  // Priority change — no confirmation needed
+  const priSel=document.getElementById('ai-bulk-priority');
+  if(priSel) priSel.addEventListener('change',()=>{
+    const val=priSel.value; if(!val) return;
+    _applyBulkOp(item=>{ item.priority=val; },'Priority updated to: '+val);
+    priSel.value='';
+  });
+
+  // Category change — no confirmation needed
+  const catSel=document.getElementById('ai-bulk-category');
+  if(catSel) catSel.addEventListener('change',()=>{
+    const val=catSel.value; if(!val) return;
+    _applyBulkOp(item=>{ item.category=val; },'Category updated to: '+val);
+    catSel.value='';
+  });
+
+  // Add tag
+  const tagBtn=document.getElementById('ai-bulk-add-tag-btn');
+  const tagInp=document.getElementById('ai-bulk-add-tag');
+  const doAddTag=()=>{
+    const tag=(tagInp?tagInp.value.trim():''); if(!tag) return;
+    _applyBulkOp(item=>{
+      const existing=(item.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+      if(!existing.includes(tag)) item.tags=[...existing,tag].join(', ');
+    },'Tag "'+tag+'" added.');
+    if(tagInp) tagInp.value='';
+  };
+  if(tagBtn) tagBtn.addEventListener('click', doAddTag);
+  if(tagInp) tagInp.addEventListener('keydown',e=>{ if(e.key==='Enter') doAddTag(); });
+
+  // Duplicate
+  const dupBtn=document.getElementById('ai-bulk-dup-btn');
+  if(dupBtn) dupBtn.addEventListener('click',()=>{
+    const ids=[..._bulkSelected];
+    const items=state.actionItems.filter(i=>ids.includes(i.id));
+    if(!items.length) return;
+    const copies=items.map(item=>{
+      const copy=JSON.parse(JSON.stringify(item));
+      copy.id=uid();copy.title=item.title+' (Copy)';copy.status='Not Started';
+      copy.startTimestamp=null;copy.startDate='';copy.startTime='';
+      copy.finishTimestamp=null;copy.finishDate='';copy.finishTime='';
+      copy.actualDuration=0;copy.totalPausedMs=0;copy.pausedAt=null;
+      copy.createdTimestamp=Date.now();copy.createdDate=today();
+      return copy;
+    });
+    state.actionItems.unshift(...copies);
+    saveState(); _bulkSelected.clear(); renderActionItems(); _updateBulkUI();
+    if(typeof prodToast==='function') prodToast(copies.length+' tasks duplicated.','success');
+  });
+
+  // Export
+  const expBtn=document.getElementById('ai-bulk-export-btn');
+  if(expBtn) expBtn.addEventListener('click', _exportSelected);
+
+  // Archive — requires confirmation
+  const archBtn=document.getElementById('ai-bulk-archive-btn');
+  if(archBtn) archBtn.addEventListener('click',()=>{
+    const n=_bulkSelected.size; if(!n) return;
+    if(!window.confirm('Archive '+n+' selected task'+(n>1?'s':'')+'?')) return;
+    _applyBulkOp(item=>{ item.archived=true; item.archivedAt=Date.now(); },'Archived '+n+' tasks.');
+  });
+
+  // Delete — requires confirmation
+  const delBtn=document.getElementById('ai-bulk-delete-btn');
+  if(delBtn) delBtn.addEventListener('click',()=>{
+    const n=_bulkSelected.size; if(!n) return;
+    if(!window.confirm('Permanently delete '+n+' selected task'+(n>1?'s':'')+'? This cannot be undone.')) return;
+    const ids=[..._bulkSelected];
+    state.actionItems=state.actionItems.filter(i=>!ids.includes(i.id));
+    saveState(); _bulkSelected.clear(); renderActionItems(); _updateBulkUI();
+    if(typeof prodToast==='function') prodToast(n+' tasks deleted.','error',3000);
+  });
+
+  // Select All
+  const selAllBtn=document.getElementById('ai-bulk-select-all-btn');
+  if(selAllBtn) selAllBtn.addEventListener('click',()=>{
+    _getVisibleIds().forEach(id=>_bulkSelected.add(id));
+    renderActionItems(); _updateBulkUI();
+  });
+
+  // Clear Selection
+  const clearBtn=document.getElementById('ai-bulk-clear-btn');
+  if(clearBtn) clearBtn.addEventListener('click',()=>{
+    _bulkSelected.clear(); renderActionItems(); _updateBulkUI();
+  });
+
+  // Select-all checkbox
+  const selAllChk=document.getElementById('ai-select-all-chk');
+  if(selAllChk) selAllChk.addEventListener('change',()=>{
+    if(selAllChk.checked) _getVisibleIds().forEach(id=>_bulkSelected.add(id));
+    else                  _getVisibleIds().forEach(id=>_bulkSelected.delete(id));
+    renderActionItems(); _updateBulkUI();
+  });
+
+  // Show select-all row
+  const selAllRow=document.getElementById('ai-select-all-row');
+  if(selAllRow) selAllRow.style.display='flex';
+}
+
+/* ══════════════════════════════════════════
+   MULTI-SELECT FILTER ENGINE (additive)
+   _mfState.status / priority / category hold selected values as Sets.
+   Empty Set = "All" (no filter applied for that group).
+══════════════════════════════════════════ */
+
+/* ── Update trigger button label ── */
+function _mfUpdateLabel(group){
+  const trigger = document.getElementById('mf-'+group+'-trigger');
+  if(!trigger) return;
+  const sel = _mfState[group];
+  const LABELS = {
+    status   : 'All Statuses',
+    priority : 'All Priorities',
+    category : 'All Categories',
+  };
+  if(sel.size === 0){
+    trigger.textContent = LABELS[group] + ' \u25BE';
+    trigger.classList.remove('mf-active');
+  } else if(sel.size <= 2){
+    trigger.textContent = [...sel].join(', ') + ' \u25BE';
+    trigger.classList.add('mf-active');
+  } else {
+    trigger.textContent = sel.size + ' Selected \u25BE';
+    trigger.classList.add('mf-active');
+  }
+}
+
+/* ── Sync checkbox checked state to _mfState ── */
+function _mfSyncCheckboxes(group){
+  const dropdown = document.getElementById('mf-'+group+'-dropdown');
+  if(!dropdown) return;
+  dropdown.querySelectorAll('input[type=checkbox][data-mf="'+group+'"]').forEach(chk=>{
+    chk.checked = _mfState[group].has(chk.value);
+  });
+}
+
+/* ── Rebuild category options dynamically ── */
+function _mfRebuildCategories(){
+  const container = document.getElementById('mf-category-options');
+  if(!container) return;
+  const cats = settings.categories && settings.categories.length
+    ? settings.categories
+    : ['Work','Personal','Learning','Church','Home','Health'];
+  // Only add missing options — preserve checked state
+  cats.forEach(cat=>{
+    if(container.querySelector(`input[value="${CSS.escape(cat)}"]`)) return;
+    const lbl = document.createElement('label');
+    lbl.className = 'mf-opt';
+    const chk = document.createElement('input');
+    chk.type='checkbox'; chk.value=cat; chk.dataset.mf='category';
+    chk.checked = _mfState.category.has(cat);
+    chk.addEventListener('change', ()=>_mfHandleChange('category', cat, chk.checked));
+    lbl.appendChild(chk);
+    lbl.appendChild(document.createTextNode(' '+cat));
+    container.appendChild(lbl);
+  });
+}
+
+/* ── Handle a single checkbox change ── */
+function _mfHandleChange(group, value, checked){
+  if(checked) _mfState[group].add(value);
+  else        _mfState[group].delete(value);
+  _mfUpdateLabel(group);
+  renderActionItems();
+}
+
+/* ── Close all open dropdowns ── */
+function _mfCloseAll(){
+  ['status','priority','category'].forEach(g=>{
+    const dd = document.getElementById('mf-'+g+'-dropdown');
+    const tr = document.getElementById('mf-'+g+'-trigger');
+    if(dd) dd.style.display='none';
+    if(tr) tr.classList.remove('mf-open');
+  });
+}
+
+/* ── Toggle one dropdown open/closed ── */
+function _mfToggle(group){
+  const dd = document.getElementById('mf-'+group+'-dropdown');
+  const tr = document.getElementById('mf-'+group+'-trigger');
+  if(!dd||!tr) return;
+  const isOpen = dd.style.display !== 'none';
+  _mfCloseAll();
+  if(!isOpen){
+    if(group==='category') _mfRebuildCategories();
+    _mfSyncCheckboxes(group);
+    dd.style.display = 'block';
+    tr.classList.add('mf-open');
+  }
+}
+
+/* ── Select-all / Clear-all for a group ── */
+function _mfSelectAll(group){
+  const dd = document.getElementById('mf-'+group+'-dropdown');
+  if(!dd) return;
+  dd.querySelectorAll('input[type=checkbox][data-mf="'+group+'"]').forEach(chk=>{
+    chk.checked = true;
+    _mfState[group].add(chk.value);
+  });
+  _mfUpdateLabel(group);
+  renderActionItems();
+}
+
+function _mfClearAll(group){
+  _mfState[group].clear();
+  _mfSyncCheckboxes(group);
+  _mfUpdateLabel(group);
+  renderActionItems();
+}
+
+/* ── Initialize all multi-select filter widgets ── */
+function _initMultiFilters(){
+  ['status','priority','category'].forEach(group=>{
+    // Trigger button toggles dropdown
+    const trigger = document.getElementById('mf-'+group+'-trigger');
+    if(trigger) trigger.addEventListener('click', e=>{
+      e.stopPropagation();
+      _mfToggle(group);
+    });
+
+    // Wire static checkboxes (status + priority; category is dynamic)
+    const dropdown = document.getElementById('mf-'+group+'-dropdown');
+    if(dropdown){
+      // Checkbox changes
+      dropdown.addEventListener('change', e=>{
+        const chk = e.target;
+        if(chk.tagName==='INPUT'&&chk.type==='checkbox'&&chk.dataset.mf===group){
+          _mfHandleChange(group, chk.value, chk.checked);
+        }
+      });
+      // Ctrl buttons (All / Clear)
+      dropdown.querySelectorAll('.mf-ctrl-btn').forEach(btn=>{
+        btn.addEventListener('click', e=>{
+          e.stopPropagation();
+          if(btn.dataset.act==='all')  _mfSelectAll(group);
+          if(btn.dataset.act==='none') _mfClearAll(group);
+        });
+      });
+      // Prevent dropdown closing when clicking inside it
+      dropdown.addEventListener('click', e=>e.stopPropagation());
+    }
+  });
+
+  // Close all dropdowns on outside click
+  document.addEventListener('click', _mfCloseAll);
+
+  // Also re-build category options whenever collectCategories runs
+  // by wrapping it (non-destructive)
+  const _origCollectCategories = collectCategories;
+  collectCategories = function(){
+    _origCollectCategories.apply(this, arguments);
+    _mfRebuildCategories();
+  };
+
+  // Wire the sort dropdown to still trigger a re-render
+  const sortSel = document.getElementById('ai-sort');
+  if(sortSel) sortSel.addEventListener('change', renderActionItems);
+
+  // Initial label update
+  ['status','priority','category'].forEach(_mfUpdateLabel);
 }
 
 /* Wrap renderPlanner so every planner change also syncs the dashboard */
