@@ -3227,10 +3227,12 @@ function renderDashboard(){
    CURRENT TASK BANNER
 ══════════════════════════════════════════ */
 function renderCurrentTaskBanner(){
+  // Stop any running timer immediately — startActiveTimer will restart it cleanly
+  stopActiveTimer();
   const active=state.actionItems.find(i=>i.status==='In Progress'||i.status==='Paused');
   const emptyEl=$('pct-empty'),activeEl=$('pct-active');
   if(!emptyEl||!activeEl)return;
-  if(!active){emptyEl.style.display='block';activeEl.style.display='none';stopActiveTimer();return;}
+  if(!active){emptyEl.style.display='block';activeEl.style.display='none';return;}
   emptyEl.style.display='none';activeEl.style.display='block';
   $('pct-title').textContent=active.title||'—';
   $('pct-cat').textContent=active.category||'Uncategorised';
@@ -3245,15 +3247,33 @@ function renderCurrentTaskBanner(){
 
 function startActiveTimer(item){
   stopActiveTimer();
-  if(!item.startTimestamp)return;
+  // Capture only the ID — re-read live object every tick to avoid stale closures
+  if(!item||!item.startTimestamp)return;
+  const _timerItemId = item.id;
   function tick(){
-    const now=Date.now(),paused=item.totalPausedMs||0;
+    // Always get the current live version of the item from state
+    const live = state.actionItems.find(i=>i.id===_timerItemId);
+    if(!live||!live.startTimestamp){
+      // Item gone or reset — stop cleanly
+      activeTimerRaf=null; return;
+    }
+    const now    = Date.now();
+    const paused = live.totalPausedMs||0;
     let elapsed;
-    if(item.status==='Paused'&&item.pausedAt){elapsed=Math.floor((item.pausedAt-item.startTimestamp-paused)/1000);}
-    else{elapsed=Math.floor((now-item.startTimestamp-paused)/1000);}
+    if(live.status==='Paused'&&live.pausedAt){
+      elapsed = Math.floor((live.pausedAt - live.startTimestamp - paused)/1000);
+    } else {
+      elapsed = Math.floor((now - live.startTimestamp - paused)/1000);
+    }
     const el=$('pct-elapsed');
-    if(el)el.textContent=fmtHMS(Math.max(0,elapsed));
-    if(item.status==='In Progress')activeTimerRaf=requestAnimationFrame(tick);
+    if(el) el.textContent = fmtHMS(Math.max(0,elapsed));
+    // Only continue looping while task is actively running
+    if(live.status==='In Progress'){
+      activeTimerRaf=requestAnimationFrame(tick);
+    } else {
+      // Task paused or finished — stop loop, leave final time displayed
+      activeTimerRaf=null;
+    }
   }
   activeTimerRaf=requestAnimationFrame(tick);
 }
@@ -4618,11 +4638,16 @@ let _tfTimerRaf = null;
 function _tfStartActiveTimer(item){
   if(_tfTimerRaf){ cancelAnimationFrame(_tfTimerRaf); _tfTimerRaf = null; }
   if(!item || !item.startTimestamp) return;
+  // Capture only the ID — re-read live object every tick
+  const _tfItemId = item.id;
   function tick(){
-    const now = Date.now(), paused = item.totalPausedMs || 0;
-    const elapsed = item.status === 'Paused' && item.pausedAt
-      ? Math.floor((item.pausedAt - item.startTimestamp - paused) / 1000)
-      : Math.floor((now - item.startTimestamp - paused) / 1000);
+    const live = state.actionItems.find(i=>i.id===_tfItemId);
+    if(!live||!live.startTimestamp){ _tfTimerRaf=null; return; }
+    const now    = Date.now();
+    const paused = live.totalPausedMs || 0;
+    const elapsed = live.status === 'Paused' && live.pausedAt
+      ? Math.floor((live.pausedAt - live.startTimestamp - paused) / 1000)
+      : Math.floor((now - live.startTimestamp - paused) / 1000);
     const el = document.getElementById('tf-active-timer');
     if(el) el.textContent = (function(s){
       const h=String(Math.floor(s/3600)).padStart(2,'0'),
@@ -4630,7 +4655,8 @@ function _tfStartActiveTimer(item){
             sec=String(s%60).padStart(2,'0');
       return h+':'+m+':'+sec;
     })(Math.max(0, elapsed));
-    if(item.status === 'In Progress') _tfTimerRaf = requestAnimationFrame(tick);
+    if(live.status === 'In Progress') _tfTimerRaf = requestAnimationFrame(tick);
+    else                              _tfTimerRaf = null;
   }
   _tfTimerRaf = requestAnimationFrame(tick);
 }
