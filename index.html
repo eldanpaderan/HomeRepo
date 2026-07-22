@@ -2896,6 +2896,11 @@ renderBudget();
 /* No-data state */
 .report-empty-state{text-align:center;padding:4rem 1rem;font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(255,255,255,0.2);}
 .report-summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem;}
+.report-work-hours-card{background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.18);border-radius:10px;padding:1rem 1.1rem;margin-bottom:0.75rem;grid-column:1/-1;}
+.report-wh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.75rem;margin-top:0.65rem;}
+.report-wh-stat{display:flex;flex-direction:column;gap:0.2rem;}
+.report-wh-val{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;letter-spacing:-0.02em;}
+.report-wh-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3);}
 .report-table-wrap{overflow-x:auto;}
 .report-table{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:0.68rem;}
 .report-table th{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);padding:0.55rem 0.75rem;text-align:left;font-weight:500;letter-spacing:0.08em;border-bottom:1px solid rgba(255,255,255,0.06);white-space:nowrap;}
@@ -4252,31 +4257,103 @@ function _daysBetween(from,to){
 }
 
 /* ── KPI calculator ── */
+/* ── Helper: calculate actual elapsed seconds for ANY task that has been started ──
+   Works for In Progress (running), Paused (stopped mid-task), and Completed.
+   Returns 0 for Not Started / Cancelled. ── */
+function _calcElapsedSecs(item){
+  if(!item.startTimestamp) return 0;
+  const paused = item.totalPausedMs||0;
+  if(item.status==='Completed'&&item.finishTimestamp){
+    return Math.max(0, Math.round((item.finishTimestamp - item.startTimestamp - paused)/1000));
+  }
+  if(item.status==='Paused'&&item.pausedAt){
+    return Math.max(0, Math.round((item.pausedAt - item.startTimestamp - paused)/1000));
+  }
+  if(item.status==='In Progress'){
+    return Math.max(0, Math.round((Date.now() - item.startTimestamp - paused)/1000));
+  }
+  // Completed without finishTimestamp — fall back to stored actualDuration
+  if(item.actualDuration>0) return item.actualDuration;
+  return 0;
+}
+
+/* ── Helper: map items to {secs, pausedSecs} for time-based reporting ── */
+function _calcTimeTotals(items){
+  let workedSecs=0, pausedSecs=0;
+  items.forEach(item=>{
+    if(!item.startTimestamp) return;
+    const elapsed  = _calcElapsedSecs(item);
+    const paused   = Math.max(0, Math.round((item.totalPausedMs||0)/1000));
+    workedSecs    += elapsed;
+    pausedSecs    += paused;
+  });
+  return {workedSecs, pausedSecs};
+}
+
 function _calcKPIs(items,focusSessions,from,to){
-  const completed=items.filter(i=>i.status==='Completed');
-  const inProg=items.filter(i=>i.status==='In Progress');
-  const durations=completed.filter(i=>i.actualDuration>0).map(i=>i.actualDuration);
-  const totalWork=durations.reduce((a,b)=>a+b,0);
-  const avgDur=durations.length?Math.round(totalWork/durations.length):0;
-  const longest=durations.length?Math.max(...durations):0;
-  const shortest=durations.length?Math.min(...durations):0;
-  const rate=items.length?Math.round(completed.length/items.length*100):0;
-  const fromStr=from.toISOString().slice(0,10),toStr=to.toISOString().slice(0,10);
-  const focusMins=(focusSessions||[]).filter(s=>s.date>=fromStr&&s.date<=toStr).reduce((a,s)=>a+s.mins,0);
+  const completed = items.filter(i=>i.status==='Completed');
+  const inProg    = items.filter(i=>i.status==='In Progress');
+  const paused    = items.filter(i=>i.status==='Paused');
+  const notStart  = items.filter(i=>i.status==='Not Started');
+  const tracked   = items.filter(i=>i.startTimestamp);  // any task with actual work
+
+  // Durations — use _calcElapsedSecs for ALL tracked tasks, not just completed
+  const allDurations   = tracked.map(i=>_calcElapsedSecs(i)).filter(s=>s>0);
+  const doneDurations  = completed.map(i=>_calcElapsedSecs(i)).filter(s=>s>0);
+
+  const totalWork      = allDurations.reduce((a,b)=>a+b,0);
+  const totalDoneWork  = doneDurations.reduce((a,b)=>a+b,0);
+  const avgDur         = allDurations.length?Math.round(totalWork/allDurations.length):0;
+  const longest        = allDurations.length?Math.max(...allDurations):0;
+  const shortest       = allDurations.length?Math.min(...allDurations):0;
+  const rate           = items.length?Math.round(completed.length/items.length*100):0;
+
+  const fromStr = from.toISOString().slice(0,10);
+  const toStr   = to.toISOString().slice(0,10);
+  const focusMins = (focusSessions||[]).filter(s=>s.date>=fromStr&&s.date<=toStr)
+                     .reduce((a,s)=>a+s.mins,0);
+
+  // Best day by completions
   const byDay={};
   completed.forEach(i=>{const d=(i.finishDate||'').slice(0,10);if(d)byDay[d]=(byDay[d]||0)+1;});
-  const bestDay=Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
-  const catMap={},priMap={};
+  const bestDay = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+
+  // Category map — count tasks AND accumulate time
+  const catMap={},priMap={},catTimeMap={},priTimeMap={};
   items.forEach(i=>{
-    if(i.category)catMap[i.category]=(catMap[i.category]||0)+1;
-    if(i.priority)priMap[i.priority]=(priMap[i.priority]||0)+1;
+    if(i.category){
+      catMap[i.category]=(catMap[i.category]||0)+1;
+      catTimeMap[i.category]=(catTimeMap[i.category]||0)+_calcElapsedSecs(i);
+    }
+    if(i.priority){
+      priMap[i.priority]=(priMap[i.priority]||0)+1;
+      priTimeMap[i.priority]=(priTimeMap[i.priority]||0)+_calcElapsedSecs(i);
+    }
   });
-  const topCat=Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
-  const topPri=Object.entries(priMap).sort((a,b)=>b[1]-a[1])[0];
-  return{total:items.length,completed:completed.length,inProg:inProg.length,rate,
-    totalWork,avgDur,longest,shortest,focusMins,
-    bestDay:bestDay?bestDay[0]:'—',topCat:topCat?topCat[0]:'—',topPri:topPri?topPri[0]:'—',
-    catMap,priMap,byDay};
+  const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
+  const topPri = Object.entries(priMap).sort((a,b)=>b[1]-a[1])[0];
+
+  // Work hours breakdown
+  const {workedSecs, pausedSecs} = _calcTimeTotals(tracked);
+  const inProgSecs  = inProg.reduce((a,i)=>a+_calcElapsedSecs(i),0);
+  const pausedSecs2 = paused.reduce((a,i)=>a+_calcElapsedSecs(i),0);
+
+  // Tasks started / finished in range
+  const startedInRange  = items.filter(i=>i.startDate>=fromStr&&i.startDate<=toStr).length;
+  const finishedInRange = completed.filter(i=>(i.finishDate||'')>=fromStr&&(i.finishDate||'')<=toStr).length;
+
+  return{
+    total:items.length, completed:completed.length, inProg:inProg.length,
+    pausedCount:paused.length, notStartCount:notStart.length,
+    tracked:tracked.length, rate,
+    totalWork, totalDoneWork, avgDur, longest, shortest, focusMins,
+    workedSecs, pausedSecs, inProgSecs, pausedSecs2,
+    startedInRange, finishedInRange,
+    stillActive: inProg.length + paused.length,
+    bestDay:bestDay?bestDay[0]:'—',
+    topCat:topCat?topCat[0]:'—', topPri:topPri?topPri[0]:'—',
+    catMap, priMap, catTimeMap, priTimeMap, byDay,
+  };
 }
 
 function initReports(){
@@ -4306,7 +4383,10 @@ function getReportRange(){
 function generateReport(){
   const{from,to}=getReportRange();
   const items=state.actionItems.filter(i=>{
-    const d=new Date(i.createdTimestamp||i.createdDate||0);return d>=from&&d<=to;
+    // Include if created OR started in range — captures in-progress/paused work
+    const created = new Date(i.createdTimestamp||i.createdDate||0);
+    const started = i.startDate ? new Date(i.startDate) : null;
+    return (created>=from&&created<=to)||(started&&started>=from&&started<=to);
   });
   reportCache=items;
   const out=$('report-output'),kpiGrid=$('report-kpi-grid'),chartsRow=$('report-charts-row');
@@ -4330,24 +4410,64 @@ function generateReport(){
   const PRI_COLORS={Critical:'#f43f5e',High:'#f59e0b',Medium:'#14b8a6',Low:'#10b981'};
   const STATUS_COLORS={'Not Started':'rgba(255,255,255,0.25)','In Progress':'#14b8a6','Paused':'#f59e0b','Completed':'#10b981','Cancelled':'#f43f5e'};
 
+  // ── Work Hours Summary section ──
+  const totalTrackedSecs = kpi.workedSecs;
+  const whHtml = `
+    <div class="report-work-hours-card">
+      <div class="report-chart-title">&#x23F1; Work Hours Summary</div>
+      <div class="report-wh-grid">
+        <div class="report-wh-stat">
+          <div class="report-wh-val" style="color:#fff">${totalTrackedSecs?fmtDur(totalTrackedSecs):'—'}</div>
+          <div class="report-wh-label">Total Worked</div>
+        </div>
+        <div class="report-wh-stat">
+          <div class="report-wh-val" style="color:#10b981">${kpi.totalDoneWork?fmtDur(kpi.totalDoneWork):'—'}</div>
+          <div class="report-wh-label">Completed Tasks</div>
+        </div>
+        <div class="report-wh-stat">
+          <div class="report-wh-val" style="color:#14b8a6">${kpi.inProgSecs?fmtDur(kpi.inProgSecs):'—'}</div>
+          <div class="report-wh-label">In Progress</div>
+        </div>
+        <div class="report-wh-stat">
+          <div class="report-wh-val" style="color:#f59e0b">${kpi.pausedSecs2?fmtDur(kpi.pausedSecs2):'—'}</div>
+          <div class="report-wh-label">Paused Tasks</div>
+        </div>
+        <div class="report-wh-stat">
+          <div class="report-wh-val" style="color:#f43f5e">${kpi.pausedSecs?fmtDur(kpi.pausedSecs):'—'}</div>
+          <div class="report-wh-label">Paused Time</div>
+        </div>
+        <div class="report-wh-stat">
+          <div class="report-wh-val" style="color:#f59e0b">${(kpi.focusMins||0)+'m'}</div>
+          <div class="report-wh-label">Focus Timer</div>
+        </div>
+      </div>
+    </div>`;
+
   // ── KPI grid ──
   if(kpiGrid){
     kpiGrid.style.display='grid';
     const KPIS=[
-      {l:'Total Tasks',v:kpi.total,sub:'in range'},
-      {l:'Completed',v:kpi.completed,sub:'finished',c:'#10b981'},
-      {l:'In Progress',v:kpi.inProg,sub:'running',c:'#14b8a6'},
-      {l:'Completion Rate',v:kpi.rate+'%',sub:'of total',c:kpi.rate>=70?'#10b981':kpi.rate>=40?'#f59e0b':'#f43f5e'},
-      {l:'Total Focus',v:(kpi.focusMins||0)+'m',sub:'timer sessions',c:'#f59e0b'},
-      {l:'Total Work Time',v:kpi.totalWork?fmtDur(kpi.totalWork):'—',sub:'active duration'},
-      {l:'Avg Duration',v:kpi.avgDur?fmtDur(kpi.avgDur):'—',sub:'per completed task'},
-      {l:'Longest Task',v:kpi.longest?fmtDur(kpi.longest):'—',sub:'single task'},
-      {l:'Shortest Task',v:kpi.shortest&&kpi.shortest!==kpi.longest?fmtDur(kpi.shortest):'—',sub:'single task'},
-      {l:'Best Day',v:kpi.bestDay!=='—'?kpi.bestDay.slice(5):'—',sub:'most completions',c:'#a855f7'},
-      {l:'Top Category',v:kpi.topCat||'—',sub:'most used'},
-      {l:'Top Priority',v:kpi.topPri||'—',sub:'most assigned'},
+      {l:'Total Tasks',     v:kpi.total,          sub:'in range'},
+      {l:'Completed',       v:kpi.completed,       sub:'finished',      c:'#10b981'},
+      {l:'In Progress',     v:kpi.inProg,          sub:'running',       c:'#14b8a6'},
+      {l:'Paused',          v:kpi.pausedCount,     sub:'on hold',       c:'#f59e0b'},
+      {l:'Not Started',     v:kpi.notStartCount,   sub:'pending'},
+      {l:'Tasks w/ Work',   v:kpi.tracked,         sub:'have time data',c:'#a855f7'},
+      {l:'Completion Rate', v:kpi.rate+'%',        sub:'of total',      c:kpi.rate>=70?'#10b981':kpi.rate>=40?'#f59e0b':'#f43f5e'},
+      {l:'Total Work Time', v:kpi.totalWork?fmtDur(kpi.totalWork):'—',  sub:'all tracked tasks'},
+      {l:'Avg Duration',    v:kpi.avgDur?fmtDur(kpi.avgDur):'—',       sub:'per tracked task'},
+      {l:'Longest Task',    v:kpi.longest?fmtDur(kpi.longest):'—',      sub:'single task'},
+      {l:'Shortest Task',   v:kpi.shortest&&kpi.shortest!==kpi.longest?fmtDur(kpi.shortest):'—',sub:'single task'},
+      {l:'Total Focus',     v:(kpi.focusMins||0)+'m', sub:'timer sessions', c:'#f59e0b'},
+      {l:'Started',         v:kpi.startedInRange,  sub:'in period',     c:'#14b8a6'},
+      {l:'Finished',        v:kpi.finishedInRange, sub:'in period',     c:'#10b981'},
+      {l:'Still Active',    v:kpi.stillActive,     sub:'in progress + paused'},
+      {l:'Best Day',        v:kpi.bestDay!=='—'?kpi.bestDay.slice(5):'—',sub:'most completions',c:'#a855f7'},
+      {l:'Top Category',    v:kpi.topCat||'—',    sub:'most used'},
+      {l:'Top Priority',    v:kpi.topPri||'—',    sub:'most assigned'},
     ];
-    kpiGrid.innerHTML=KPIS.map(k=>`<div class="report-kpi-card"><div class="report-kpi-label">${escH(k.l)}</div><div class="report-kpi-value" style="${k.c?'color:'+k.c:''}">${escH(String(k.v))}</div><div class="report-kpi-sub">${escH(k.sub)}</div></div>`).join('');
+    kpiGrid.innerHTML = whHtml +
+      KPIS.map(k=>`<div class="report-kpi-card"><div class="report-kpi-label">${escH(k.l)}</div><div class="report-kpi-value" style="${k.c?'color:'+k.c:''}">${escH(String(k.v))}</div><div class="report-kpi-sub">${escH(k.sub)}</div></div>`).join('');
   }
 
   // ── Trend data ──
@@ -4356,51 +4476,105 @@ function generateReport(){
   items.filter(i=>i.status==='Completed').forEach(i=>{const d=(i.finishDate||'').slice(0,10);if(d)byDayDone[d]=(byDayDone[d]||0)+1;});
   (state.focusSessions||[]).filter(s=>{const d=new Date(s.date);return d>=from&&d<=to;}).forEach(s=>{byDayFocus[s.date]=(byDayFocus[s.date]||0)+s.mins;});
   const tL=days.map(d=>d.slice(5)),tDone=days.map(d=>byDayDone[d]||0),tFocus=days.map(d=>byDayFocus[d]||0);
-  const catEntries=Object.entries(kpi.catMap).sort((a,b)=>b[1]-a[1]);
-  const priEntries=Object.entries(kpi.priMap).sort((a,b)=>b[1]-a[1]);
+  // Sort categories and priorities by TIME worked (descending)
+  const catEntries=Object.entries(kpi.catMap).sort((a,b)=>
+    (kpi.catTimeMap[b[0]]||0)-(kpi.catTimeMap[a[0]]||0));
+  const priEntries=Object.entries(kpi.priMap).sort((a,b)=>
+    (kpi.priTimeMap[b[0]]||0)-(kpi.priTimeMap[a[0]]||0));
+  // For bar chart use time values (seconds) not counts
+  const catTimeEntries=catEntries.map(([cat])=>[cat,Math.round((kpi.catTimeMap[cat]||0)/60)]);
+  const priTimeEntries=priEntries.map(([pri])=>[pri,Math.round((kpi.priTimeMap[pri]||0)/60)]);
 
   // ── Canvas charts ──
   if(chartsRow){
     chartsRow.style.display='flex';
     const DPR=window.devicePixelRatio||1;
     const mkCanvas=(w,h)=>{const cv=document.createElement('canvas');cv.width=w*DPR;cv.height=h*DPR;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').scale(DPR,DPR);return cv;};
-    const priLegend=priEntries.map(([p,n],i)=>`<div class="report-legend-item"><span class="report-legend-dot" style="background:${PRI_COLORS[p]||CAT_COLORS[i%CAT_COLORS.length]}"></span>${escH(p)}: ${n}</div>`).join('');
+    const priLegend=priTimeEntries.map(([p,mins],i)=>`<div class="report-legend-item"><span class="report-legend-dot" style="background:${PRI_COLORS[p]||CAT_COLORS[i%CAT_COLORS.length]}"></span>${escH(p)}: ${mins?mins+'m':'—'}</div>`).join('');
     chartsRow.innerHTML=`
       <div class="report-chart-card" id="rcc-wrap-1"><div class="report-chart-title">Daily Completion Trend</div><div class="report-canvas-wrap" id="rcc-1"></div></div>
       <div class="report-chart-card" id="rcc-wrap-2"><div class="report-chart-title">Focus Time Trend (min)</div><div class="report-canvas-wrap" id="rcc-2"></div></div>
-      <div class="report-chart-card" id="rcc-wrap-3"><div class="report-chart-title">Task Categories</div><div class="report-canvas-wrap" id="rcc-3"></div></div>
-      <div class="report-chart-card" id="rcc-wrap-4"><div class="report-chart-title">Priority Distribution</div><div class="report-donut-wrap"><div class="report-canvas-wrap" id="rcc-4" style="width:130px;height:130px;flex-shrink:0;"></div><div class="report-donut-legend">${priLegend}</div></div></div>`;
+      <div class="report-chart-card" id="rcc-wrap-3"><div class="report-chart-title">Category Time (min)</div><div class="report-canvas-wrap" id="rcc-3"></div></div>
+      <div class="report-chart-card" id="rcc-wrap-4"><div class="report-chart-title">Priority Time (min)</div><div class="report-donut-wrap"><div class="report-canvas-wrap" id="rcc-4" style="width:130px;height:130px;flex-shrink:0;"></div><div class="report-donut-legend">${priLegend}</div></div></div>`;
     requestAnimationFrame(()=>{
       const w1=$('rcc-1');if(w1){const cv=mkCanvas(w1.offsetWidth||300,160);w1.appendChild(cv);_drawLineChart(cv,tL,tDone,'#14b8a6');}
       const w2=$('rcc-2');if(w2){const cv=mkCanvas(w2.offsetWidth||300,160);w2.appendChild(cv);_drawLineChart(cv,tL,tFocus,'#f59e0b');}
       const w3=$('rcc-3');
-      if(w3&&catEntries.length){const cv=mkCanvas(w3.offsetWidth||300,160);w3.appendChild(cv);_drawBarChart(cv,catEntries.map(e=>e[0]),catEntries.map(e=>e[1]),CAT_COLORS);}
-      else if(w3)w3.innerHTML='<div style="padding:1rem;font-family:\'DM Mono\',monospace;font-size:0.62rem;color:rgba(255,255,255,0.2);text-align:center;">No category data.</div>';
-      const w4=$('rcc-4');if(w4&&priEntries.length){const cv=mkCanvas(130,130);w4.appendChild(cv);_drawDonutChart(cv,priEntries.map(([p,n],i)=>({label:p,value:n,color:PRI_COLORS[p]||CAT_COLORS[i%CAT_COLORS.length]})));}
+      if(w3&&catTimeEntries.length){const cv=mkCanvas(w3.offsetWidth||300,160);w3.appendChild(cv);_drawBarChart(cv,catTimeEntries.map(e=>e[0]),catTimeEntries.map(e=>e[1]),CAT_COLORS);}
+      else if(w3)w3.innerHTML='<div style="padding:1rem;font-family:\'DM Mono\',monospace;font-size:0.62rem;color:rgba(255,255,255,0.2);text-align:center;">No category time data.</div>';
+      const w4=$('rcc-4');if(w4&&priTimeEntries.length){const cv=mkCanvas(130,130);w4.appendChild(cv);_drawDonutChart(cv,priTimeEntries.map(([p,mins],i)=>({label:p,value:mins||0,color:PRI_COLORS[p]||CAT_COLORS[i%CAT_COLORS.length]})));}
     });
   }
 
-  // ── Status bars + full table ──
-  const statusMap={};items.forEach(i=>{statusMap[i.status]=(statusMap[i.status]||0)+1;});
+  // ── Status bars ──
+  const statusMap={},statusTimeMap={};
+  items.forEach(i=>{
+    statusMap[i.status]=(statusMap[i.status]||0)+1;
+    statusTimeMap[i.status]=(statusTimeMap[i.status]||0)+_calcElapsedSecs(i);
+  });
   const maxSt=Math.max(...Object.values(statusMap),1);
+
+  // ── Category time breakdown ──
+  const catTimeRows=Object.entries(kpi.catTimeMap)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([cat,secs])=>`<div class="report-chart-bar-row">
+      <div class="report-chart-bar-label">${escH(cat)}</div>
+      <div class="report-chart-bar-track"><div class="report-chart-bar-fill" data-target="${Math.round(secs/Math.max(...Object.values(kpi.catTimeMap),1)*100)}" style="width:0%;background:#14b8a6"></div></div>
+      <div class="report-chart-bar-val">${fmtDur(secs)}</div>
+    </div>`).join('');
+
+  // ── Priority time breakdown ──
+  const maxPriSecs=Math.max(...Object.values(kpi.priTimeMap).concat([1]));
+  const priTimeRows=Object.entries(kpi.priTimeMap)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([pri,secs],idx)=>{
+      const colors={Critical:'#f43f5e',High:'#f59e0b',Medium:'#14b8a6',Low:'#10b981'};
+      return `<div class="report-chart-bar-row">
+        <div class="report-chart-bar-label">${escH(pri)}</div>
+        <div class="report-chart-bar-track"><div class="report-chart-bar-fill" data-target="${Math.round(secs/maxPriSecs*100)}" style="width:0%;background:${colors[pri]||'#14b8a6'}"></div></div>
+        <div class="report-chart-bar-val">${fmtDur(secs)}</div>
+      </div>`;}).join('');
+
   out.innerHTML=`
     <div class="report-chart-bar-wrap">
-      <div class="report-chart-title">By Status</div>
-      ${Object.entries(statusMap).map(([s,n])=>`<div class="report-chart-bar-row"><div class="report-chart-bar-label">${escH(s)}</div><div class="report-chart-bar-track"><div class="report-chart-bar-fill" data-target="${Math.round(n/maxSt*100)}" style="width:0%;background:${STATUS_COLORS[s]||'#14b8a6'}"></div></div><div class="report-chart-bar-val">${n}</div></div>`).join('')}
+      <div class="report-chart-title">By Status (tasks &amp; tracked time)</div>
+      ${Object.entries(statusMap).map(([s,n])=>`
+        <div class="report-chart-bar-row">
+          <div class="report-chart-bar-label">${escH(s)}</div>
+          <div class="report-chart-bar-track"><div class="report-chart-bar-fill" data-target="${Math.round(n/maxSt*100)}" style="width:0%;background:${STATUS_COLORS[s]||'#14b8a6'}"></div></div>
+          <div class="report-chart-bar-val">${n} task${n!==1?'s':''} &nbsp;<span style="color:rgba(255,255,255,0.3);font-size:0.58rem;">${statusTimeMap[s]?fmtDur(statusTimeMap[s]):''}</span></div>
+        </div>`).join('')}
     </div>
+    ${catTimeRows?`<div class="report-chart-bar-wrap">
+      <div class="report-chart-title">&#x1F4C2; Time by Category</div>${catTimeRows}
+    </div>`:''}
+    ${priTimeRows?`<div class="report-chart-bar-wrap">
+      <div class="report-chart-title">&#x26A1; Time by Priority</div>${priTimeRows}
+    </div>`:''}
     <div class="report-table-wrap">
       <table class="report-table">
-        <thead><tr><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Tags</th><th>Start</th><th>Finish</th><th>Est(min)</th><th>Duration</th><th>Owner</th></tr></thead>
-        <tbody>${items.map(i=>`<tr>
-          <td>${escH(i.title)}</td><td>${escH(i.category||'—')}</td>
-          <td><span class="ai-badge ${typeof _badgePri==='function'?_badgePri(i.priority):'badge-medium'}" style="display:inline-block">${escH(i.priority||'—')}</span></td>
-          <td>${escH(i.status)}</td><td>${escH(i.tags||'—')}</td>
-          <td>${escH(i.startDate?(i.startDate+(i.startTime?' '+i.startTime:'')):'—')}</td>
-          <td>${escH(i.finishDate?(i.finishDate+(i.finishTime?' '+i.finishTime:'')):'—')}</td>
-          <td>${i.estimatedDuration||'—'}</td>
-          <td>${i.actualDuration?fmtDur(i.actualDuration):i.actualDurationManual?i.actualDurationManual+'m':'—'}</td>
-          <td>${escH(i.owner||'—')}</td>
-        </tr>`).join('')}</tbody>
+        <thead><tr>
+          <th>Title</th><th>Category</th><th>Priority</th><th>Status</th>
+          <th>Tags</th><th>Start</th><th>Finish</th>
+          <th>Est(m)</th><th>Tracked</th><th>Paused</th><th>Owner</th>
+        </tr></thead>
+        <tbody>${items.map(i=>{
+          const elapsed = _calcElapsedSecs(i);
+          const pSecs   = Math.round((i.totalPausedMs||0)/1000);
+          return `<tr>
+            <td>${escH(i.title)}</td>
+            <td>${escH(i.category||'—')}</td>
+            <td><span class="ai-badge ${typeof _badgePri==='function'?_badgePri(i.priority):'badge-medium'}" style="display:inline-block">${escH(i.priority||'—')}</span></td>
+            <td>${escH(i.status)}</td>
+            <td>${escH(i.tags||'—')}</td>
+            <td>${escH(i.startDate?(i.startDate+(i.startTime?' '+i.startTime:'')):'—')}</td>
+            <td>${escH(i.finishDate?(i.finishDate+(i.finishTime?' '+i.finishTime:'')):'—')}</td>
+            <td>${i.estimatedDuration||'—'}</td>
+            <td style="color:${elapsed?'#14b8a6':'rgba(255,255,255,0.3)'}">${elapsed?fmtDur(elapsed):'—'}</td>
+            <td style="color:${pSecs?'#f59e0b':'rgba(255,255,255,0.3)'}">${pSecs?fmtDur(pSecs):'—'}</td>
+            <td>${escH(i.owner||'—')}</td>
+          </tr>`;}).join('')}
+        </tbody>
       </table>
     </div>`;
 
