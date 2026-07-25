@@ -3685,6 +3685,19 @@ const _board = (function(){
     card.addEventListener('touchmove',  _onTouchMove,  {passive:false});
     card.addEventListener('touchend',   _onTouchEnd,   {passive:false});
 
+    /* ── Double-click → open existing Edit dialog (additive, no drag impact) ──
+       Uses native dblclick event which fires AFTER two clicks but NEVER during
+       a drag sequence — browsers suppress click/dblclick when a drag occurs,
+       so this coexists perfectly with dragstart/dragend without any timer hacks. */
+    card.addEventListener('dblclick', e=>{
+      e.stopPropagation();   // don't bubble to column drop zone
+      // Always re-read live item so edits reflect current state
+      const liveItem = state.actionItems.find(i=>i.id===item.id);
+      if(!liveItem) return;
+      // Reuse the existing openModal function — same form, same save logic
+      if(typeof openModal === 'function') openModal(liveItem);
+    });
+
     return card;
   }
 
@@ -5358,6 +5371,11 @@ saveModal = function(){
     if(catVal) saved.category = catVal;
     saveState();
     renderActionItems();
+    // Refresh Task Board so status changes move card to correct column
+    if(typeof renderBoard==='function') renderBoard();
+    // Refresh dashboard stats
+    const dv=document.getElementById('view-dashboard');
+    if(dv&&dv.classList.contains('active')&&typeof renderDashboard==='function') renderDashboard();
   }
   const isEdit = !!editingId;
   prodToast(isEdit?'Task updated.':'Task created.', isEdit?'info':'success');
