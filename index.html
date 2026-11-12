@@ -2507,13 +2507,32 @@ renderBudget();
       <div class="prod-focus-wrap">
         <div class="prod-focus-tabs" id="focus-tabs">
           <button class="prod-focus-tab active" data-fmode="stopwatch" data-fsecs="0">Stopwatch</button>
-          <button class="prod-focus-tab" data-fmode="pomo25" data-fsecs="1500">Pomodoro 25</button>
-          <button class="prod-focus-tab" data-fmode="pomo50" data-fsecs="3000">Pomodoro 50</button>
+          <div class="prod-pomo-wrap" id="focus-pomo-wrap">
+            <button type="button" class="prod-focus-pomo-trigger" id="focus-pomo-trigger" aria-haspopup="true" aria-expanded="false">Pomodoro &#9662;</button>
+            <div class="prod-pomo-menu" id="focus-pomo-menu" role="menu" style="display:none;">
+              <button type="button" class="prod-pomo-opt" role="menuitem" data-pomo="pomo25" data-mins="25">Pomodoro 25 Minutes</button>
+              <button type="button" class="prod-pomo-opt" role="menuitem" data-pomo="pomo50" data-mins="50">Pomodoro 50 Minutes</button>
+            </div>
+          </div>
           <button class="prod-focus-tab" data-fmode="break" data-fsecs="300">Break</button>
           <button class="prod-focus-tab" data-fmode="custom" data-fsecs="0">Custom</button>
         </div>
         <div id="focus-custom-row" style="display:none;gap:0.5rem;justify-content:center;margin-bottom:1rem;">
           <input class="prod-filter-input" type="number" id="focus-custom-mins" placeholder="Minutes" min="1" max="480" style="width:110px;text-align:center;"/>
+        </div>
+        <div id="focus-break-row" class="focus-break-row" style="display:none;">
+          <div class="focus-break-chips" id="focus-break-chips">
+            <button type="button" class="focus-break-chip active" data-bmins="5">5 min</button>
+            <button type="button" class="focus-break-chip" data-bmins="10">10 min</button>
+            <button type="button" class="focus-break-chip" data-bmins="15">15 min</button>
+            <button type="button" class="focus-break-chip" data-bmins="30">30 min</button>
+            <button type="button" class="focus-break-chip" data-bmins="60">Lunch Break (60 min)</button>
+            <button type="button" class="focus-break-chip" data-bmins="custom">Custom</button>
+          </div>
+          <div id="focus-break-custom-wrap" style="display:none;gap:0.5rem;justify-content:center;">
+            <input class="prod-filter-input" type="number" id="focus-break-custom-mins" placeholder="Minutes (1-480)" min="1" max="480" style="width:140px;text-align:center;"/>
+          </div>
+          <div id="focus-break-info" class="focus-break-info"></div>
         </div>
         <div class="prod-focus-ring-wrap" id="focus-ring-wrap">
           <svg class="prod-focus-svg" width="200" height="200" viewBox="0 0 200 200"><circle class="prod-focus-track" cx="100" cy="100" r="88"/><circle class="prod-focus-fill" id="focus-fill-ring" cx="100" cy="100" r="88" stroke-dasharray="552.92" stroke-dashoffset="0"/></svg>
@@ -2842,6 +2861,23 @@ renderBudget();
 .prod-focus-display{font-family:'DM Mono',monospace;font-size:2.4rem;font-weight:300;color:#fff;letter-spacing:-0.04em;line-height:1;}
 .prod-focus-mode-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:#14b8a6;}
 .prod-focus-controls{display:flex;gap:0.75rem;justify-content:center;}
+/* Focus Timer: Pomodoro dropdown */
+.prod-pomo-wrap{position:relative;display:inline-block;}
+.prod-focus-pomo-trigger{padding:0.4rem 0.9rem;border-radius:7px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(255,255,255,0.4);font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;}
+.prod-focus-pomo-trigger:hover{color:rgba(255,255,255,0.8);}
+.prod-focus-pomo-trigger.active{background:rgba(20,184,166,0.14);border-color:rgba(20,184,166,0.3);color:#14b8a6;}
+.prod-pomo-menu{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);min-width:190px;background:#111722;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:0.3rem;z-index:30;box-shadow:0 8px 28px rgba(0,0,0,0.5);}
+.prod-pomo-opt{display:block;width:100%;text-align:left;padding:0.45rem 0.65rem;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.7);font-family:'DM Mono',monospace;font-size:0.68rem;cursor:pointer;white-space:nowrap;}
+.prod-pomo-opt:hover{background:rgba(20,184,166,0.12);color:#14b8a6;}
+/* Focus Timer: break durations */
+.focus-break-row{flex-direction:column;align-items:center;gap:0.6rem;margin-bottom:1rem;}
+.focus-break-chips{display:flex;gap:0.35rem;flex-wrap:wrap;justify-content:center;}
+.focus-break-chip{padding:0.3rem 0.7rem;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;font-size:0.62rem;cursor:pointer;transition:all 0.15s;}
+.focus-break-chip:hover:not(:disabled){color:#fff;border-color:rgba(255,255,255,0.25);}
+.focus-break-chip.active{background:rgba(16,185,129,0.14);border-color:rgba(16,185,129,0.35);color:#10b981;}
+.focus-break-chip:disabled{opacity:0.45;cursor:not-allowed;}
+.focus-break-info{font-family:'DM Mono',monospace;font-size:0.62rem;line-height:1.7;color:rgba(255,255,255,0.45);text-align:center;min-height:2.4em;}
+.focus-break-info b{color:rgba(255,255,255,0.8);font-weight:600;}
 .planner-progress-row{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;}
 .planner-pct{font-family:'DM Mono',monospace;font-size:0.65rem;color:#14b8a6;white-space:nowrap;}
 .planner-prog-track{flex:1;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;}
@@ -3926,7 +3962,7 @@ function initFocusTimer(){
 function startFocus(){
   focusState.running=true;focusState.startedAt=Date.now();
   const sb=$('focus-start-btn');
-  if(sb){sb.textContent='&#9208; Pause';sb.className='prod-btn prod-btn-amber';}
+  if(sb){sb.innerHTML='&#9208; Pause';sb.className='prod-btn prod-btn-amber';}
   focusLoop();
 }
 function stopFocus(){
@@ -3935,7 +3971,7 @@ function stopFocus(){
     const elapsed=Math.floor((Date.now()-focusState.startedAt)/1000);
     focusState.elapsedAtPause+=elapsed;
     const mins=Math.round(focusState.elapsedAtPause/60);
-    if(mins>0){
+    if(mins>0&&focusState.mode!=='break'){ // breaks are not focus/work time
       state.focusSessions.push({date:today(),mins,mode:focusState.mode});
       if(state.focusSessions.length>500)state.focusSessions=state.focusSessions.slice(-500);
       saveState();updateFocusTotalToday();
@@ -4784,6 +4820,7 @@ function init(){
   _safeInit('initActionItemFilters',  initActionItemFilters);
   _safeInit('initBannerButtons',      initBannerButtons);
   _safeInit('initFocusTimer',         initFocusTimer);
+  _safeInit('_initFocusEnhancements', _initFocusEnhancements);
   _safeInit('initPlanner',            initPlanner);
   _safeInit('initNotes',              initNotes);
   _safeInit('initReports',            initReports);
@@ -5806,6 +5843,316 @@ function _initMultiFilters(){
 
   // Initial label update
   ['status','priority','category'].forEach(_mfUpdateLabel);
+}
+
+/* ══════════════════════════════════════════
+   FOCUS TIMER ENHANCEMENTS (additive)
+   • One "Pomodoro" dropdown (25 / 50)
+   • Break durations: 5 / 10 / 15 / 30 / Lunch Break (60) / Custom
+   • Break <-> Action Item integration
+       - break start  : the In Progress item is paused via handleItemAction(item,'pause')
+       - break finish : the SAME item is resumed via handleItemAction(item,'resume'),
+                        but only if it is still exactly as the break left it
+   Reuses: handleItemAction, startFocus/stopFocus/focusLoop/updateFocusUI (wrapped once),
+           renderBoard, renderDashboard, syncPlannerToRoutine, prodToast.
+   Storage: one transient key (LS_BREAK) so an active break survives a refresh.
+            It is not part of backups; no existing key or schema is changed.
+══════════════════════════════════════════ */
+const LS_BREAK = 'homeRepo_productivity_break';
+let _breakSession       = null;     // {itemId, pausedAt, label} while a break is active (running OR paused)
+let _breakTimeoutId     = null;     // backstop for background tabs (rAF is paused in hidden tabs)
+let _breakIdleLabel     = 'Break';
+let _breakCustomActive  = false;
+let _lastBreakInfoKey   = '';
+let _focusEnhanced      = false;
+
+function _setFocusLabel(t){ const ml=$('focus-mode-label'); if(ml) ml.textContent=t; }
+function _breakRemainingSecs(){
+  let r=focusState.totalSecs-focusState.elapsedAtPause;
+  if(focusState.running&&focusState.startedAt) r-=Math.floor((Date.now()-focusState.startedAt)/1000);
+  return Math.max(0,r);
+}
+function _customBreakMins(){
+  const v=parseInt(($('focus-break-custom-mins')||{}).value,10);
+  return (v>=1&&v<=480)?v:0;
+}
+
+/* The item is only auto-resumed if it is still exactly as the break left it. */
+function _breakItemEligible(sess){
+  if(!sess||!sess.itemId) return null;
+  const item=state.actionItems.find(i=>i.id===sess.itemId);
+  if(!item||item.archived) return null;
+  if(item.status!=='Paused') return null;                         // finished / cancelled / moved / resumed by user
+  if(!item.pausedAt||item.pausedAt!==sess.pausedAt) return null;  // user resumed and re-paused it themselves
+  if(state.actionItems.some(i=>i.id!==item.id&&i.status==='In Progress')) return null; // user started another task
+  return item;
+}
+
+function _afterItemStateChange(){
+  try{ renderBoard(); }catch(e){ console.warn('[Productivity] board refresh',e); }
+  const dv=$('view-dashboard');
+  try{ if(dv&&dv.classList.contains('active')) renderDashboard(); }catch(e){}
+  try{ syncPlannerToRoutine(); }catch(e){}
+}
+
+/* ── break info line ── */
+function _renderBreakInfo(force){
+  const el=$('focus-break-info'); if(!el||focusState.mode!=='break') return;
+  const sess=_breakSession;
+  const mins=Math.round(focusState.totalSecs/60);
+  const label=sess?sess.label:_breakIdleLabel;
+  const remaining=_breakRemainingSecs();
+  const key=(sess?remaining:'idle')+'|'+label+'|'+mins+'|'+(sess?(sess.itemId||'-'):'x');
+  if(!force&&key===_lastBreakInfoKey) return;
+  _lastBreakInfoKey=key;
+  let l1='Selected: <b>'+escH(label)+'</b> &middot; '+mins+' min';
+  if(sess) l1+=' &middot; Remaining: <b>'+(remaining>=3600?fmtHMS(remaining):fmtMS(remaining))+'</b>';  // same format as the ring
+  let l2;
+  if(!sess){
+    l2='Press Start. A running task is paused automatically and resumed when the break ends.';
+  }else if(!sess.itemId){
+    l2='No task was running &mdash; nothing will be resumed.';
+  }else{
+    const it=state.actionItems.find(i=>i.id===sess.itemId);
+    if(!it) l2='The paused task no longer exists &mdash; nothing will be resumed.';
+    else if(_breakItemEligible(sess)) l2='&#9208; &ldquo;'+escH(it.title)+'&rdquo; is paused and resumes automatically when the break ends.';
+    else l2='&ldquo;'+escH(it.title)+'&rdquo; was changed during the break, so it will not be resumed automatically.';
+  }
+  el.innerHTML=l1+'<br>'+l2;
+}
+
+function _syncBreakUI(){
+  const row=$('focus-break-row'); if(!row) return;
+  const isBreak=focusState.mode==='break';
+  row.style.display=isBreak?'flex':'none';
+  const locked=!!_breakSession;
+  const curMins=Math.round(focusState.totalSecs/60);
+  row.querySelectorAll('.focus-break-chip').forEach(ch=>{
+    ch.disabled=locked;
+    const v=ch.dataset.bmins;
+    ch.classList.toggle('active', v==='custom'?_breakCustomActive:(!_breakCustomActive&&parseInt(v,10)===curMins));
+  });
+  const cw=$('focus-break-custom-wrap'); if(cw) cw.style.display=(_breakCustomActive&&isBreak)?'flex':'none';
+  const ci=$('focus-break-custom-mins'); if(ci) ci.disabled=locked;
+  _renderBreakInfo(true);
+}
+
+function _applyBreakMinutes(m,label){
+  focusState.mode='break'; focusState.totalSecs=m*60; focusState.elapsedAtPause=0; focusState.startedAt=null;
+  _breakIdleLabel=label;
+  _setFocusLabel(label==='Lunch Break'?'Lunch Break':'Break \u00B7 '+m+' min');
+  updateFocusUI(m*60);
+}
+
+/* ── persistence (survives a browser refresh during a break) ── */
+function _persistBreak(){
+  if(!_breakSession) return;
+  try{
+    localStorage.setItem(LS_BREAK,JSON.stringify({
+      v:1,totalSecs:focusState.totalSecs,label:_breakSession.label,
+      elapsedAtPause:focusState.elapsedAtPause,
+      startedAt:focusState.running?focusState.startedAt:null,
+      running:!!focusState.running,
+      itemId:_breakSession.itemId,pausedAt:_breakSession.pausedAt
+    }));
+  }catch(e){ console.warn('[Productivity] could not persist break',e); }
+}
+function _clearBreakRecord(){ try{ localStorage.removeItem(LS_BREAK); }catch(e){} }
+
+/* ── backstop: rAF does not run in hidden tabs, so a one-shot timeout guarantees timely resume ── */
+function _clearBreakBackstop(){ if(_breakTimeoutId){ clearTimeout(_breakTimeoutId); _breakTimeoutId=null; } }
+function _scheduleBreakBackstop(){
+  _clearBreakBackstop();
+  if(!_breakSession||!focusState.running||focusState.mode!=='break') return;
+  _breakTimeoutId=setTimeout(_breakBackstopFire,_breakRemainingSecs()*1000+60);
+}
+function _breakBackstopFire(){
+  _clearBreakBackstop();
+  if(!_breakSession||!focusState.running||focusState.mode!=='break') return;
+  if(_breakRemainingSecs()<=0) _completeBreak(); else _scheduleBreakBackstop();
+}
+
+/* ── start (or continue) a break: pause the running Action Item with the EXISTING pause function ── */
+function _beginBreakSession(){
+  const continuing=!!_breakSession;
+  if(!_breakSession) _breakSession={itemId:null,pausedAt:null,label:_breakIdleLabel};
+  const active=state.actionItems.find(i=>i.status==='In Progress');
+  if(active){
+    handleItemAction(active,'pause');          // existing function: stamps pausedAt, saves, re-renders list + banner
+    _breakSession.itemId=active.id;
+    _breakSession.pausedAt=active.pausedAt;
+    _afterItemStateChange();
+    prodToast((continuing?'Break resumed':'Break started')+' \u2014 "'+active.title+'" paused.','info',3200);
+  }else{
+    prodToast(continuing?'Break resumed.':'Break started.','info',2200);
+  }
+}
+
+/* ── end the session; resume the paused item ONLY if still eligible. Returns the resumed item or null ── */
+function _endBreakSession(){
+  const sess=_breakSession; if(!sess) return null;
+  _breakSession=null;
+  _clearBreakBackstop();
+  _clearBreakRecord();
+  const item=_breakItemEligible(sess);
+  if(item){
+    handleItemAction(item,'resume');           // existing function: adds the break to totalPausedMs, clears pausedAt
+    _afterItemStateChange();
+  }
+  _syncBreakUI();
+  return item||null;
+}
+function _endBreakManually(){
+  const hadSess=!!_breakSession;
+  const item=_endBreakSession();
+  if(!hadSess) return;
+  prodToast(item?'Break ended early \u2014 "'+item.title+'" resumed.':'Break ended.','info',3200);
+}
+function _completeBreak(late){
+  if(!_breakSession) return;                   // idempotent: rAF loop, backstop and restore can all race here
+  stopFocus();
+  focusState.elapsedAtPause=0;
+  updateFocusUI(0);
+  const item=_endBreakSession();
+  const msg=(late?'Your break finished while the app was closed':'Break finished')+(item?' \u2014 "'+item.title+'" resumed.':'.');
+  prodToast(msg,'success',5500);
+  try{ if(typeof Notification!=='undefined'&&Notification.permission==='granted') new Notification('Focus Timer',{body:msg}); }catch(e){}
+}
+
+/* ── restore an active break after refresh (never creates a second loop) ── */
+function _restoreBreakSession(){
+  let rec=null;
+  try{ rec=JSON.parse(localStorage.getItem(LS_BREAK)||'null'); }catch(e){ console.warn('[Productivity] unreadable break record ignored',e); rec=null; }
+  if(!rec||focusState.running||_breakSession) return;
+  if(typeof rec.totalSecs!=='number'||rec.totalSecs<=0||typeof rec.elapsedAtPause!=='number'){
+    console.warn('[Productivity] invalid break record ignored'); _clearBreakRecord(); return;
+  }
+  _breakSession={itemId:rec.itemId||null,pausedAt:rec.pausedAt||null,label:rec.label||'Break'};
+  _breakIdleLabel=_breakSession.label;
+  focusState.mode='break'; focusState.totalSecs=rec.totalSecs; focusState.elapsedAtPause=rec.elapsedAtPause; focusState.startedAt=null;
+  _breakCustomActive=![5,10,15,30,60].includes(Math.round(rec.totalSecs/60));
+  document.querySelectorAll('.prod-focus-tab').forEach(x=>x.classList.toggle('active',x.dataset.fmode==='break'));
+  const pt=$('focus-pomo-trigger'); if(pt) pt.classList.remove('active');
+  const cr=$('focus-custom-row'); if(cr) cr.style.display='none';
+  _setFocusLabel(_breakSession.label==='Lunch Break'?'Lunch Break':'Break \u00B7 '+Math.round(rec.totalSecs/60)+' min');
+  if(rec.running&&rec.startedAt){
+    const elapsed=rec.elapsedAtPause+Math.floor((Date.now()-rec.startedAt)/1000);
+    if(rec.totalSecs-elapsed<=0){ _completeBreak(true); return; }   // ended while the app was closed
+    focusState.running=true; focusState.startedAt=rec.startedAt;
+    const sb=$('focus-start-btn'); if(sb){ sb.innerHTML='&#9208; Pause'; sb.className='prod-btn prod-btn-amber'; }
+    focusLoop(); _scheduleBreakBackstop();
+  }else{
+    updateFocusUI(Math.max(0,rec.totalSecs-rec.elapsedAtPause));
+  }
+  _syncBreakUI();
+}
+
+/* ── Pomodoro dropdown ── */
+function _startPomodoro(key,mins){
+  stopFocus();                                   // only one Focus Timer at a time
+  if(_breakSession) _endBreakManually();         // leaving a break: resume the eligible task
+  document.querySelectorAll('.prod-focus-tab').forEach(x=>x.classList.remove('active'));
+  const trig=$('focus-pomo-trigger'); if(trig) trig.classList.add('active');
+  focusState.mode=key; focusState.totalSecs=mins*60; focusState.elapsedAtPause=0;
+  const cr=$('focus-custom-row'); if(cr) cr.style.display='none';
+  _setFocusLabel('Pomodoro '+mins);
+  updateFocusUI(focusState.totalSecs);
+  _syncBreakUI();
+  startFocus();
+}
+function _initPomodoroDropdown(){
+  const trig=$('focus-pomo-trigger'), menu=$('focus-pomo-menu'); if(!trig||!menu) return;
+  const close=()=>{ menu.style.display='none'; trig.setAttribute('aria-expanded','false'); };
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(menu.style.display!=='none') close();
+    else{ menu.style.display='block'; trig.setAttribute('aria-expanded','true'); }
+  });
+  menu.addEventListener('click',e=>e.stopPropagation());
+  menu.querySelectorAll('.prod-pomo-opt').forEach(opt=>opt.addEventListener('click',()=>{
+    close(); _startPomodoro(opt.dataset.pomo,parseInt(opt.dataset.mins,10));
+  }));
+  document.addEventListener('click',close);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+}
+
+/* ── wiring (wrappers installed exactly once) ── */
+function _initFocusEnhancements(){
+  if(!_focusEnhanced){
+    _focusEnhanced=true;
+    const _origStart=startFocus, _origStop=stopFocus, _origLoop=focusLoop, _origUpdate=updateFocusUI;
+
+    startFocus=function(){
+      if(focusState.running) return;             // never create a second loop
+      if(focusState.mode==='break'){
+        if(_breakCustomActive&&!_customBreakMins()){
+          prodToast('Enter a custom break length (1\u2013480 min) first.','warn',2800);
+          const ci=$('focus-break-custom-mins'); if(ci) ci.focus();
+          return;
+        }
+        _beginBreakSession();
+      }
+      _origStart();
+      if(focusState.mode==='break'&&_breakSession){ _persistBreak(); _scheduleBreakBackstop(); _syncBreakUI(); }
+    };
+
+    // Pausing the focus timer NEVER resumes a task: it only records that the break is paused.
+    stopFocus=function(){
+      _origStop.apply(this,arguments);
+      if(_breakSession){ _clearBreakBackstop(); _persistBreak(); _renderBreakInfo(true); }
+    };
+
+    focusLoop=function(){
+      if(_breakSession&&focusState.running&&focusState.mode==='break'&&focusState.startedAt){
+        if(_breakRemainingSecs()<=0){ _completeBreak(); return; }
+      }
+      _origLoop();
+    };
+
+    updateFocusUI=function(secs,isStop){
+      _origUpdate(secs,isStop);
+      if(focusState.mode==='break') _renderBreakInfo();
+    };
+  }
+
+  _initPomodoroDropdown();
+
+  // Existing tab handlers (registered earlier) have already stopped/reset the timer when these run.
+  document.querySelectorAll('.prod-focus-tab').forEach(t=>t.addEventListener('click',()=>{
+    if(_breakSession) _endBreakManually();
+    const pt=$('focus-pomo-trigger'); if(pt) pt.classList.remove('active');
+    if(t.dataset.fmode==='break'){ _breakCustomActive=false; _applyBreakMinutes(5,'Break'); }
+    _syncBreakUI();
+  }));
+  const rb=$('focus-reset-btn');
+  if(rb) rb.addEventListener('click',()=>{ if(_breakSession) _endBreakManually(); _syncBreakUI(); });
+
+  // Break duration chips
+  document.querySelectorAll('.focus-break-chip').forEach(ch=>ch.addEventListener('click',()=>{
+    if(_breakSession){ prodToast('Reset the break timer to change its duration.','warn',2500); return; }
+    const v=ch.dataset.bmins;
+    if(v==='custom'){
+      _breakCustomActive=true;
+      const m=_customBreakMins();
+      if(m) _applyBreakMinutes(m,'Break');
+      else{ const ci=$('focus-break-custom-mins'); if(ci) ci.focus(); }
+    }else{
+      _breakCustomActive=false;
+      const m=parseInt(v,10)||5;
+      _applyBreakMinutes(m,m===60?'Lunch Break':'Break');
+    }
+    _syncBreakUI();
+  }));
+  const bci=$('focus-break-custom-mins');
+  if(bci){
+    const onCustom=()=>{ if(_breakSession) return; const m=_customBreakMins(); if(m){ _applyBreakMinutes(m,'Break'); _syncBreakUI(); } };
+    bci.addEventListener('input',onCustom); bci.addEventListener('change',onCustom);
+  }
+
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) _breakBackstopFire(); });
+
+  _restoreBreakSession();
+  _syncBreakUI();
 }
 
 /* Wrap renderPlanner so every planner change also syncs the dashboard */
